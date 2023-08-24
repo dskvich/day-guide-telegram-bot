@@ -5,17 +5,17 @@ import (
 	"embed"
 	"fmt"
 
-	_ "github.com/mattn/go-sqlite3"
 	migrate "github.com/rubenv/sql-migrate"
+	_ "modernc.org/sqlite"
 )
 
-const dbName = "app"
+const dbName = "day-guide.db"
 
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
 func NewSQLite() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", dbName)
+	db, err := sql.Open("sqlite", dbName)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to db: %v", err)
 	}
