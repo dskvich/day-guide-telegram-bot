@@ -56,8 +56,8 @@ jobs:
             -e OPEN_WEATHER_MAP_API_KEY="${{ secrets.OPEN_WEATHER_MAP_API_KEY }}" \
             $CONTAINER_REGISTRY/$IMAGE_NAME:$GITHUB_SHA
             
-            echo "Cleaning up..."
-            docker system prune -a -f
+            #echo "Cleaning up..."
+            #docker system prune -a -f
             
             RETRY=5
             while [ $RETRY -gt 0 ]; do
