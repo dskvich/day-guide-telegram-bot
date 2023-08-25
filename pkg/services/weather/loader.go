@@ -37,11 +37,11 @@ func (s *loaderService) Run(ctx context.Context) error {
 	slog.Info("starting weather loader service", "update_interval", s.updateInterval.String())
 	defer slog.Info("stopped weather loader service")
 
-	if err := s.load(ctx); err != nil {
-		slog.Error("weather loader pass failed", logger.Err(err))
-	}
-
 	for {
+		if err := s.load(ctx); err != nil {
+			slog.Error("weather loader pass failed", logger.Err(err))
+		}
+
 		select {
 		case <-ctx.Done():
 			return nil
