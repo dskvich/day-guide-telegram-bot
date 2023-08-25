@@ -103,6 +103,7 @@ func (b *botService) handleMessage(message string) {
 
 	for _, id := range chatIDs {
 		msg := tgbotapi.NewMessage(id, message)
+		msg.ParseMode = tgbotapi.ModeMarkdown
 
 		if _, err := b.bot.Send(msg); err != nil {
 			slog.Error("sending message", logger.Err(err))

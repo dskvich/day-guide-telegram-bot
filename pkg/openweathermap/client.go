@@ -1,12 +1,16 @@
 package openweathermap
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
+
+const baseURL = "https://api.openweathermap.org/data/2.5/weather"
 
 type client struct {
 	apiKey string
@@ -20,16 +24,33 @@ func NewClient(apiKey string) *client {
 	}
 }
 
-func (c *client) GetCurrentWeather(city domain.City) (*domain.Weather, error) {
-	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric&lang=ru", city, c.apiKey)
-	resp, err := c.hc.Get(url)
+func (c *client) FetchCurrent(ctx context.Context, location domain.Location) (*domain.Weather, error) {
+	u, err := url.Parse(baseURL)
 	if err != nil {
-		return nil, fmt.Errorf("getting current weather: %v", err)
+		return nil, fmt.Errorf("parsing base url: %v", err)
+	}
+
+	q := u.Query()
+	q.Set("q", string(location))
+	q.Set("appid", c.apiKey)
+	q.Set("units", "metric")
+	q.Set("lang", "ru")
+
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %v", err)
+	}
+
+	resp, err := c.hc.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("executing request: %v", err)
 	}
 
 	var res weatherAPIResponse
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return nil, fmt.Errorf("decoding current weather response body: %v", err)
+		return nil, fmt.Errorf("decoding response body: %v", err)
 	}
 
 	return &domain.Weather{

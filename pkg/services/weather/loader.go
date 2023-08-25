@@ -2,6 +2,7 @@ package weather
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -10,31 +11,37 @@ import (
 )
 
 type Provider interface {
-	GetCurrentWeather(city domain.City) (*domain.Weather, error)
+	FetchCurrent(context.Context, domain.Location) (*domain.Weather, error)
 }
 
-type Repository interface {
-	CreateNew(ctx context.Context, weather *domain.Weather) error
+type Saver interface {
+	Save(context.Context, *domain.Weather) error
 }
 
 type loaderService struct {
-	provider       Provider
-	repo           Repository
-	updateInterval time.Duration
+	provider        Provider
+	saver           Saver
+	targetLocations []domain.Location
+	poolInterval    time.Duration
 }
 
-func NewLoaderService(provider Provider, repo Repository) (*loaderService, error) {
+func NewLoaderService(
+	provider Provider,
+	saver Saver,
+	targetLocations []domain.Location,
+) (*loaderService, error) {
 	return &loaderService{
-		provider:       provider,
-		repo:           repo,
-		updateInterval: 30 * time.Minute,
+		provider:        provider,
+		saver:           saver,
+		targetLocations: targetLocations,
+		poolInterval:    30 * time.Minute,
 	}, nil
 }
 
 func (_ *loaderService) Name() string { return "weather loader" }
 
 func (s *loaderService) Run(ctx context.Context) error {
-	slog.Info("starting weather loader service", "update_interval", s.updateInterval.String())
+	slog.Info("starting weather loader service", "interval", s.poolInterval.String())
 	defer slog.Info("stopped weather loader service")
 
 	for {
@@ -45,7 +52,7 @@ func (s *loaderService) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(s.updateInterval):
+		case <-time.After(s.poolInterval):
 			continue
 		}
 	}
@@ -55,23 +62,26 @@ func (s *loaderService) load(ctx context.Context) error {
 	slog.Info("starting weather loader pass")
 	startAt := time.Now()
 
-	cities := []domain.City{
-		domain.SaintPetersburg,
-		domain.Pitkyaranta,
-		domain.Antalya,
-	}
-
-	for _, city := range cities {
-		weather, err := s.provider.GetCurrentWeather(city)
-		if err != nil {
-			return err
-		}
-
-		if err := s.repo.CreateNew(ctx, weather); err != nil {
-			return err
+	for _, loc := range s.targetLocations {
+		if err := s.fetchAndSave(ctx, loc); err != nil {
+			slog.Error("processing location", "location", loc, logger.Err(err))
+			continue
 		}
 	}
 
 	slog.Info("completed weather loader pass", "elapsed_time", time.Now().Sub(startAt).String())
+	return nil
+}
+
+func (s *loaderService) fetchAndSave(ctx context.Context, location domain.Location) error {
+	weather, err := s.provider.FetchCurrent(ctx, location)
+	if err != nil {
+		return fmt.Errorf("fetching weather for location %s: %w", location, err)
+	}
+
+	if err := s.saver.Save(ctx, weather); err != nil {
+		return fmt.Errorf("saving weather for location %s: %w", location, err)
+	}
+
 	return nil
 }

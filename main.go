@@ -11,6 +11,8 @@ import (
 	"github.com/caarlos0/env/v9"
 
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/database"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/formatters"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openweathermap"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/repository"
@@ -73,9 +75,9 @@ func setupServices() (services.Group, error) {
 	}
 
 	chatRepository := repository.NewChatRepository(db)
-	messages := make(chan string)
+	messagesCh := make(chan string)
 
-	if svc, err = telegram.NewBotService(cfg.TelegramBotToken, chatRepository, messages); err == nil {
+	if svc, err = telegram.NewBotService(cfg.TelegramBotToken, chatRepository, messagesCh); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
 		return nil, err
@@ -83,8 +85,19 @@ func setupServices() (services.Group, error) {
 
 	openWeatherClient := openweathermap.NewClient(cfg.OpenWeatherMapAPIKey)
 	weatherRepo := repository.NewWeatherRepository(db)
+	locations := []domain.Location{
+		domain.SaintPetersburg,
+		domain.Pitkyaranta,
+		domain.Antalya,
+	}
 
-	if svc, err = weather.NewLoaderService(openWeatherClient, weatherRepo); err == nil {
+	if svc, err = weather.NewLoaderService(openWeatherClient, weatherRepo, locations); err == nil {
+		svcGroup = append(svcGroup, svc)
+	} else {
+		return nil, err
+	}
+
+	if svc, err = weather.NewBroadcasterService(weatherRepo, locations, &formatters.TableFormatter{}, messagesCh); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
 		return nil, err
