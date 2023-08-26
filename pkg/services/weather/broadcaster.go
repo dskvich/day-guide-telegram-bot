@@ -58,7 +58,7 @@ func (b *broadcasterService) Run(ctx context.Context) error {
 		}
 	}
 
-	if _, err := c.AddFunc("0 9,13,18 * * *", job); err != nil {
+	if _, err := c.AddFunc("0 6,10,15 * * *", job); err != nil {
 		slog.Error("Failed to add cron job", logger.Err(err))
 		return err
 	}
