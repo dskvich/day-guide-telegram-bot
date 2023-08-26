@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/robfig/cron/v3"
+
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
 )
@@ -47,18 +49,24 @@ func (b *broadcasterService) Run(ctx context.Context) error {
 	slog.Info("starting weather broadcaster service", "interval", b.broadcastInterval.String())
 	defer slog.Info("stopped weather broadcaster service")
 
-	for {
+	c := cron.New()
+	defer c.Stop()
+
+	job := func() {
 		if err := b.broadcast(ctx); err != nil {
 			slog.Error("weather broadcaster pass failed", logger.Err(err))
 		}
-
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-time.After(b.broadcastInterval):
-			continue
-		}
 	}
+
+	if _, err := c.AddFunc("* 9,13,18 * * *", job); err != nil {
+		slog.Error("Failed to add cron job", logger.Err(err))
+		return err
+	}
+
+	c.Start()
+	<-ctx.Done()
+
+	return nil
 }
 
 func (b *broadcasterService) broadcast(ctx context.Context) error {
