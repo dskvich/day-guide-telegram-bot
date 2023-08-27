@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -58,7 +59,7 @@ func (b *broadcasterService) Run(ctx context.Context) error {
 		}
 	}
 
-	if _, err := c.AddFunc("0 6,10,15 * * *", job); err != nil {
+	if _, err := c.AddFunc("0 6 * * *", job); err != nil {
 		slog.Error("Failed to add cron job", logger.Err(err))
 		return err
 	}
@@ -73,15 +74,18 @@ func (b *broadcasterService) broadcast(ctx context.Context) error {
 	slog.Info("starting weather broadcaster pass")
 	startAt := time.Now()
 
+	var sb strings.Builder
 	for _, loc := range b.locations {
 		weather, err := b.fetcher.FetchLatestByLocation(ctx, loc)
 		if err != nil {
 			return fmt.Errorf("fetching weather for location %s: %w", loc, err)
 		}
 
-		tableStr := b.tableFormatter.Format(*weather)
-		b.outCh <- tableStr
+		sb.WriteString(b.tableFormatter.Format(*weather))
+		sb.WriteString("\n")
 	}
+
+	b.outCh <- sb.String()
 
 	slog.Info("completed weather broadcaster pass", "elapsed_time", time.Now().Sub(startAt).String())
 	return nil
