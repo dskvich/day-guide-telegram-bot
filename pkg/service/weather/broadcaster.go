@@ -21,12 +21,20 @@ type TableFormatter interface {
 	Format(weather domain.Weather) string
 }
 
+type GptProvider interface {
+	GetResponse(ctx context.Context, prompt string) (string, error)
+}
+
+const weatherAnalysisQuery = `Проанализируй текущие погодные данные, учитывая "ощущаемую" температуру в скобках, 
+и представь аналитику с юмором. Используй эмоджи.`
+
 type broadcasterService struct {
 	fetcher           Fetcher
 	locations         []domain.Location
 	tableFormatter    TableFormatter
 	outCh             chan<- string
 	broadcastInterval time.Duration
+	gptProvider       GptProvider
 }
 
 func NewBroadcasterService(
@@ -34,6 +42,7 @@ func NewBroadcasterService(
 	locations []domain.Location,
 	tableFormatter TableFormatter,
 	outCh chan<- string,
+	gptProvider GptProvider,
 ) (*broadcasterService, error) {
 	return &broadcasterService{
 		fetcher:           fetcher,
@@ -41,6 +50,7 @@ func NewBroadcasterService(
 		tableFormatter:    tableFormatter,
 		outCh:             outCh,
 		broadcastInterval: 3 * time.Hour,
+		gptProvider:       gptProvider,
 	}, nil
 }
 
@@ -59,7 +69,7 @@ func (b *broadcasterService) Run(ctx context.Context) error {
 		}
 	}
 
-	if _, err := c.AddFunc("0 6 * * *", job); err != nil {
+	if _, err := c.AddFunc("0 6,10,14 * * *", job); err != nil {
 		slog.Error("Failed to add cron job", logger.Err(err))
 		return err
 	}
@@ -84,6 +94,13 @@ func (b *broadcasterService) broadcast(ctx context.Context) error {
 		sb.WriteString(b.tableFormatter.Format(*weather))
 		sb.WriteString("\n")
 	}
+
+	resp, err := b.gptProvider.GetResponse(ctx, sb.String()+weatherAnalysisQuery)
+	if err != nil {
+		return fmt.Errorf("generation question: %w", err)
+	}
+
+	sb.WriteString(resp)
 
 	b.outCh <- sb.String()
 

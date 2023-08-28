@@ -13,12 +13,13 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/database"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/formatters"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/gpt"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openweathermap"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/repository"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/services"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/services/telegram"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/services/weather"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/telegram"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/weather"
 )
 
 type Config struct {
@@ -60,14 +61,14 @@ func runMain() error {
 	return svcGroup.Run(ctx)
 }
 
-func setupServices() (services.Group, error) {
+func setupServices() (service.Group, error) {
 	cfg := Config{}
 	if err := env.Parse(&cfg); err != nil {
 		return nil, fmt.Errorf("parsing env config: %v", err)
 	}
 
-	var svc services.Service
-	var svcGroup services.Group
+	var svc service.Service
+	var svcGroup service.Group
 
 	db, err := database.NewSQLite()
 	if err != nil {
@@ -97,7 +98,9 @@ func setupServices() (services.Group, error) {
 		return nil, err
 	}
 
-	if svc, err = weather.NewBroadcasterService(weatherRepo, locations, &formatters.TableFormatter{}, messagesCh); err == nil {
+	gptClient := gpt.NewClient()
+
+	if svc, err = weather.NewBroadcasterService(weatherRepo, locations, &formatters.TableFormatter{}, messagesCh, gptClient); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
 		return nil, err

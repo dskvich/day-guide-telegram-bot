@@ -1,4 +1,4 @@
-package services
+package service
 
 import (
 	"context"
@@ -22,8 +22,8 @@ type Service interface {
 type Group []Service
 
 // Run executes all Service instances in the group using the provided context.
-// Calls to Run block until all services have completed executing either because
-// the context was cancelled or any of the services reported an error.
+// Calls to Run block until all service have completed executing either because
+// the context was cancelled or any of the service reported an error.
 func (g Group) Run(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
