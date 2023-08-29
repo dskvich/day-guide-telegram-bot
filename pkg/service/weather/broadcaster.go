@@ -13,7 +13,7 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
 )
 
-type Fetcher interface {
+type WeatherFetcher interface {
 	FetchLatestByLocation(context.Context, domain.Location) (*domain.Weather, error)
 }
 
@@ -25,30 +25,37 @@ type GptProvider interface {
 	GetResponse(ctx context.Context, prompt string) (string, error)
 }
 
+type ChatFetcher interface {
+	GetIDs(ctx context.Context) ([]int64, error)
+}
+
 const weatherAnalysisQuery = `Проанализируй текущие погодные данные, учитывая "ощущаемую" температуру в скобках, 
 и представь аналитику с юмором. Используй эмоджи и черный юмор без границ.`
 
 type broadcasterService struct {
-	fetcher        Fetcher
+	weatherFetcher WeatherFetcher
 	locations      []domain.Location
 	tableFormatter TableFormatter
-	outCh          chan<- string
+	outCh          chan<- domain.Message
 	gptProvider    GptProvider
+	chatFetcher    ChatFetcher
 }
 
 func NewBroadcasterService(
-	fetcher Fetcher,
+	weatherFetcher WeatherFetcher,
 	locations []domain.Location,
 	tableFormatter TableFormatter,
-	outCh chan<- string,
+	outCh chan<- domain.Message,
 	gptProvider GptProvider,
+	chatFetcher ChatFetcher,
 ) (*broadcasterService, error) {
 	return &broadcasterService{
-		fetcher:        fetcher,
+		weatherFetcher: weatherFetcher,
 		locations:      locations,
 		tableFormatter: tableFormatter,
 		outCh:          outCh,
 		gptProvider:    gptProvider,
+		chatFetcher:    chatFetcher,
 	}, nil
 }
 
@@ -82,9 +89,14 @@ func (b *broadcasterService) broadcast(ctx context.Context) error {
 	slog.Info("starting weather broadcaster pass")
 	startAt := time.Now()
 
+	chatIDs, err := b.chatFetcher.GetIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("fetching chatIDs for broadcasting: %w", err)
+	}
+
 	var sb strings.Builder
 	for _, loc := range b.locations {
-		weather, err := b.fetcher.FetchLatestByLocation(ctx, loc)
+		weather, err := b.weatherFetcher.FetchLatestByLocation(ctx, loc)
 		if err != nil {
 			return fmt.Errorf("fetching weather for location %s: %w", loc, err)
 		}
@@ -100,7 +112,12 @@ func (b *broadcasterService) broadcast(ctx context.Context) error {
 
 	sb.WriteString(resp)
 
-	b.outCh <- sb.String()
+	for _, id := range chatIDs {
+		b.outCh <- &domain.TextMessage{
+			ChatID:  id,
+			Content: sb.String(),
+		}
+	}
 
 	slog.Info("completed weather broadcaster pass", "elapsed_time", time.Now().Sub(startAt).String())
 	return nil

@@ -10,6 +10,8 @@ import (
 
 	"github.com/caarlos0/env/v9"
 
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/command"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/command/handler"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/database"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/formatters"
@@ -20,6 +22,7 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/telegram"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/weather"
+	telegrambot "github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram"
 )
 
 type Config struct {
@@ -75,10 +78,22 @@ func setupServices() (service.Group, error) {
 		return nil, fmt.Errorf("creating db: %v", err)
 	}
 
-	chatRepository := repository.NewChatRepository(db)
-	messagesCh := make(chan string)
+	bot, err := telegrambot.NewBot(cfg.TelegramBotToken)
+	if err != nil {
+		return nil, fmt.Errorf("creating telegram bot: %v", err)
+	}
 
-	if svc, err = telegram.NewBotService(cfg.TelegramBotToken, chatRepository, messagesCh); err == nil {
+	chatRepository := repository.NewChatRepository(db)
+
+	defaultHandler := handler.NewRegister(chatRepository)
+	handlers := []command.Handler{
+		handler.NewRegister(chatRepository),
+	}
+	dispatcher := command.NewDispatcher(handlers, defaultHandler)
+
+	messagesCh := make(chan domain.Message)
+
+	if svc, err = telegram.NewService(bot, dispatcher, messagesCh); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
 		return nil, err
@@ -101,7 +116,14 @@ func setupServices() (service.Group, error) {
 
 	gptClient := gpt.NewClient()
 
-	if svc, err = weather.NewBroadcasterService(weatherRepo, locations, &formatters.TableFormatter{}, messagesCh, gptClient); err == nil {
+	if svc, err = weather.NewBroadcasterService(
+		weatherRepo,
+		locations,
+		&formatters.TableFormatter{},
+		messagesCh,
+		gptClient,
+		chatRepository,
+	); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
 		return nil, err

@@ -24,7 +24,7 @@ func NewChatRepository(db *sql.DB) *chatRepository {
 	}
 }
 
-func (c *chatRepository) CreateNew(ctx context.Context, chat *domain.Chat) error {
+func (c *chatRepository) Save(ctx context.Context, chat *domain.Chat) error {
 	q := `insert into chats(id, registered_by) values(?, ?)`
 
 	if _, err := c.db.ExecContext(ctx, q, chat.ID, chat.RegisteredBy); err != nil {
