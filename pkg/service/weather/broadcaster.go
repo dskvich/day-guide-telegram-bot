@@ -26,7 +26,7 @@ type GptProvider interface {
 }
 
 const weatherAnalysisQuery = `Проанализируй текущие погодные данные, учитывая "ощущаемую" температуру в скобках, 
-и представь аналитику с юмором. Используй эмоджи.`
+и представь аналитику с юмором. Используй эмоджи и черный юмор без границ.`
 
 type broadcasterService struct {
 	fetcher        Fetcher
