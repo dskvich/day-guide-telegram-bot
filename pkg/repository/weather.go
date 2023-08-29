@@ -14,9 +14,7 @@ type weatherRepository struct {
 }
 
 func NewWeatherRepository(db *sql.DB) *weatherRepository {
-	return &weatherRepository{
-		db: db,
-	}
+	return &weatherRepository{db: db}
 }
 
 func (repo *weatherRepository) Save(ctx context.Context, w *domain.Weather) error {

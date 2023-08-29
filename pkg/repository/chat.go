@@ -19,9 +19,7 @@ type chatRepository struct {
 var ErrChatAlreadyExists = errors.New("chat with the given ID already exists")
 
 func NewChatRepository(db *sql.DB) *chatRepository {
-	return &chatRepository{
-		db: db,
-	}
+	return &chatRepository{db: db}
 }
 
 func (c *chatRepository) Save(ctx context.Context, chat *domain.Chat) error {

@@ -1,4 +1,4 @@
-package formatters
+package formatter
 
 import (
 	"fmt"
@@ -9,9 +9,9 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
 
-type TableFormatter struct{}
+type Weather struct{}
 
-func (_ *TableFormatter) Format(w domain.Weather) string {
+func (_ *Weather) Format(w domain.Weather) string {
 	var sb strings.Builder
 
 	sb.WriteString(fmt.Sprintf("%s %s - %s\n", weatherEmoji(w.Weather), w.Location, w.WeatherVerbose))

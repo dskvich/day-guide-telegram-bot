@@ -29,12 +29,13 @@ func NewLoaderService(
 	provider Provider,
 	saver Saver,
 	targetLocations []domain.Location,
+	poolInterval time.Duration,
 ) (*loaderService, error) {
 	return &loaderService{
 		provider:        provider,
 		saver:           saver,
 		targetLocations: targetLocations,
-		poolInterval:    30 * time.Minute,
+		poolInterval:    poolInterval,
 	}, nil
 }
 

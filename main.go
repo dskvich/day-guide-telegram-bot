@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/caarlos0/env/v9"
 
@@ -14,21 +15,25 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/command/handler"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/database"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/formatters"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/formatter"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/gpt"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openexchangerates"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openweathermap"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/report"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/repository"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/broadcaster"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/exchangerates"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/telegram"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/weather"
 	telegrambot "github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram"
 )
 
 type Config struct {
-	TelegramBotToken     string `env:"TELEGRAM_BOT_TOKEN,required"`
-	OpenWeatherMapAPIKey string `env:"OPEN_WEATHER_MAP_API_KEY,required"`
+	TelegramBotToken       string `env:"TELEGRAM_BOT_TOKEN,required"`
+	OpenWeatherMapAPIKey   string `env:"OPEN_WEATHER_MAP_API_KEY,required"`
+	OpenExchangeRatesAPPID string `env:"OPEN_EXCHANGE_RATES_APP_ID,required"`
 }
 
 func main() {
@@ -108,16 +113,54 @@ func setupServices() (service.Group, error) {
 		domain.Antalya,
 	}
 
-	if svc, err = weather.NewLoaderService(openWeatherClient, weatherRepo, locations); err == nil {
+	if svc, err = weather.NewLoaderService(
+		openWeatherClient,
+		weatherRepo,
+		locations,
+		30*time.Minute,
+	); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
 		return nil, err
 	}
 
 	gptClient := gpt.NewClient()
-	weatherReportGenerator := report.NewWeather(locations, weatherRepo, &formatters.TableFormatter{}, gptClient)
+	weatherReportGenerator := report.NewWeather(locations, weatherRepo, &formatter.Weather{}, gptClient)
 
-	if svc, err = weather.NewBroadcasterService(chatRepository, weatherReportGenerator, messagesCh); err == nil {
+	if svc, err = broadcaster.NewBroadcasterService(
+		"weather",
+		"0 6,10,15 * * *",
+		chatRepository,
+		weatherReportGenerator,
+		messagesCh,
+	); err == nil {
+		svcGroup = append(svcGroup, svc)
+	} else {
+		return nil, err
+	}
+
+	openExchangeRatesClient := openexchangerates.NewClient(cfg.OpenExchangeRatesAPPID)
+	exchangeRatesRepo := repository.NewExchangeRatesRepository(db)
+
+	if svc, err = exchangerates.NewLoaderService(
+		openExchangeRatesClient,
+		exchangeRatesRepo,
+		time.Hour,
+	); err == nil {
+		svcGroup = append(svcGroup, svc)
+	} else {
+		return nil, err
+	}
+
+	exchangeRatesReportGenerator := report.NewExchangeRates(exchangeRatesRepo, &formatter.ExchageRates{})
+
+	if svc, err = broadcaster.NewBroadcasterService(
+		"exchange rates",
+		"0 6,8,10,12,14,16 * * *",
+		chatRepository,
+		exchangeRatesReportGenerator,
+		messagesCh,
+	); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
 		return nil, err
