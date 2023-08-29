@@ -18,6 +18,7 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/gpt"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openweathermap"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/report"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/repository"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/telegram"
@@ -84,13 +85,12 @@ func setupServices() (service.Group, error) {
 	}
 
 	chatRepository := repository.NewChatRepository(db)
-
 	defaultHandler := handler.NewRegister(chatRepository)
 	handlers := []command.Handler{
 		handler.NewRegister(chatRepository),
 	}
-	dispatcher := command.NewDispatcher(handlers, defaultHandler)
 
+	dispatcher := command.NewDispatcher(handlers, defaultHandler)
 	messagesCh := make(chan domain.Message)
 
 	if svc, err = telegram.NewService(bot, dispatcher, messagesCh); err == nil {
@@ -115,15 +115,9 @@ func setupServices() (service.Group, error) {
 	}
 
 	gptClient := gpt.NewClient()
+	weatherReportGenerator := report.NewWeather(locations, weatherRepo, &formatters.TableFormatter{}, gptClient)
 
-	if svc, err = weather.NewBroadcasterService(
-		weatherRepo,
-		locations,
-		&formatters.TableFormatter{},
-		messagesCh,
-		gptClient,
-		chatRepository,
-	); err == nil {
+	if svc, err = weather.NewBroadcasterService(chatRepository, weatherReportGenerator, messagesCh); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
 		return nil, err

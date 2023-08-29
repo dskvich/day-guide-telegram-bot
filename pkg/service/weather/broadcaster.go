@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -13,49 +12,29 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
 )
 
-type WeatherFetcher interface {
-	FetchLatestByLocation(context.Context, domain.Location) (*domain.Weather, error)
-}
-
-type TableFormatter interface {
-	Format(weather domain.Weather) string
-}
-
-type GptProvider interface {
-	GetResponse(ctx context.Context, prompt string) (string, error)
-}
-
 type ChatFetcher interface {
 	GetIDs(ctx context.Context) ([]int64, error)
 }
 
-const weatherAnalysisQuery = `Проанализируй текущие погодные данные, учитывая "ощущаемую" температуру в скобках, 
-и представь аналитику с юмором. Используй эмоджи и черный юмор без границ.`
+type ReportGenerator interface {
+	Generate(ctx context.Context) (string, error)
+}
 
 type broadcasterService struct {
-	weatherFetcher WeatherFetcher
-	locations      []domain.Location
-	tableFormatter TableFormatter
-	outCh          chan<- domain.Message
-	gptProvider    GptProvider
-	chatFetcher    ChatFetcher
+	chatFetcher     ChatFetcher
+	reportGenerator ReportGenerator
+	outCh           chan<- domain.Message
 }
 
 func NewBroadcasterService(
-	weatherFetcher WeatherFetcher,
-	locations []domain.Location,
-	tableFormatter TableFormatter,
-	outCh chan<- domain.Message,
-	gptProvider GptProvider,
 	chatFetcher ChatFetcher,
+	reportGenerator ReportGenerator,
+	outCh chan<- domain.Message,
 ) (*broadcasterService, error) {
 	return &broadcasterService{
-		weatherFetcher: weatherFetcher,
-		locations:      locations,
-		tableFormatter: tableFormatter,
-		outCh:          outCh,
-		gptProvider:    gptProvider,
-		chatFetcher:    chatFetcher,
+		chatFetcher:     chatFetcher,
+		reportGenerator: reportGenerator,
+		outCh:           outCh,
 	}, nil
 }
 
@@ -88,37 +67,24 @@ func (b *broadcasterService) Run(ctx context.Context) error {
 func (b *broadcasterService) broadcast(ctx context.Context) error {
 	slog.Info("starting weather broadcaster pass")
 	startAt := time.Now()
+	defer slog.Info("completed weather broadcaster pass", "elapsed_time", time.Now().Sub(startAt).String())
 
 	chatIDs, err := b.chatFetcher.GetIDs(ctx)
 	if err != nil {
 		return fmt.Errorf("fetching chatIDs for broadcasting: %w", err)
 	}
 
-	var sb strings.Builder
-	for _, loc := range b.locations {
-		weather, err := b.weatherFetcher.FetchLatestByLocation(ctx, loc)
-		if err != nil {
-			return fmt.Errorf("fetching weather for location %s: %w", loc, err)
-		}
-
-		sb.WriteString(b.tableFormatter.Format(*weather))
-		sb.WriteString("\n")
-	}
-
-	resp, err := b.gptProvider.GetResponse(ctx, sb.String()+weatherAnalysisQuery)
+	report, err := b.reportGenerator.Generate(ctx)
 	if err != nil {
-		return fmt.Errorf("generation question: %w", err)
+		return fmt.Errorf("generating report: %w", err)
 	}
-
-	sb.WriteString(resp)
 
 	for _, id := range chatIDs {
 		b.outCh <- &domain.TextMessage{
 			ChatID:  id,
-			Content: sb.String(),
+			Content: report,
 		}
 	}
 
-	slog.Info("completed weather broadcaster pass", "elapsed_time", time.Now().Sub(startAt).String())
 	return nil
 }
