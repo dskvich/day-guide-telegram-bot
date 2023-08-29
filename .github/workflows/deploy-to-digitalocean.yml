@@ -49,6 +49,8 @@ jobs:
             docker stop $IMAGE_NAME || echo "No existing container to stop."
             docker rm $IMAGE_NAME || echo "No existing container to remove."
             
+            docker network create my-network || echo "Network already exists."
+            
             echo "Starting new Docker container..."
             docker run -d \
             --name $IMAGE_NAME \
