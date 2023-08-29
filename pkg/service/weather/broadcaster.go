@@ -29,12 +29,11 @@ const weatherAnalysisQuery = `Проанализируй текущие пого
 и представь аналитику с юмором. Используй эмоджи.`
 
 type broadcasterService struct {
-	fetcher           Fetcher
-	locations         []domain.Location
-	tableFormatter    TableFormatter
-	outCh             chan<- string
-	broadcastInterval time.Duration
-	gptProvider       GptProvider
+	fetcher        Fetcher
+	locations      []domain.Location
+	tableFormatter TableFormatter
+	outCh          chan<- string
+	gptProvider    GptProvider
 }
 
 func NewBroadcasterService(
@@ -45,19 +44,18 @@ func NewBroadcasterService(
 	gptProvider GptProvider,
 ) (*broadcasterService, error) {
 	return &broadcasterService{
-		fetcher:           fetcher,
-		locations:         locations,
-		tableFormatter:    tableFormatter,
-		outCh:             outCh,
-		broadcastInterval: 3 * time.Hour,
-		gptProvider:       gptProvider,
+		fetcher:        fetcher,
+		locations:      locations,
+		tableFormatter: tableFormatter,
+		outCh:          outCh,
+		gptProvider:    gptProvider,
 	}, nil
 }
 
 func (_ *broadcasterService) Name() string { return "weather broadcaster" }
 
 func (b *broadcasterService) Run(ctx context.Context) error {
-	slog.Info("starting weather broadcaster service", "interval", b.broadcastInterval.String())
+	slog.Info("starting weather broadcaster service")
 	defer slog.Info("stopped weather broadcaster service")
 
 	c := cron.New()
@@ -69,7 +67,7 @@ func (b *broadcasterService) Run(ctx context.Context) error {
 		}
 	}
 
-	if _, err := c.AddFunc("0 6,10,14 * * *", job); err != nil {
+	if _, err := c.AddFunc("0 * * * *", job); err != nil {
 		slog.Error("Failed to add cron job", logger.Err(err))
 		return err
 	}
