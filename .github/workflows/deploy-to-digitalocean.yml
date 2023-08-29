@@ -55,6 +55,7 @@ jobs:
             -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
             -e OPEN_WEATHER_MAP_API_KEY="${{ secrets.OPEN_WEATHER_MAP_API_KEY }}" \
             -v /app/day-guide.db:/app/day-guide.db \
+            --network my-network \
             $CONTAINER_REGISTRY/$IMAGE_NAME:$GITHUB_SHA
             
             #echo "Cleaning up..."
