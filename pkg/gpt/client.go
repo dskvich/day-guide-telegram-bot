@@ -8,7 +8,7 @@ import (
 	"net/url"
 )
 
-const baseURL = "http://localhost:8080/api/gpt/generate"
+const baseURL = "http://chatgpt-telegram-bot:8080/api/gpt/generate"
 
 type client struct {
 	hc *http.Client
