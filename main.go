@@ -89,6 +89,7 @@ func setupServices() (service.Group, error) {
 	locations := []domain.Location{
 		domain.SaintPetersburg,
 		domain.Pitkyaranta,
+		domain.Phuket,
 		domain.Antalya,
 	}
 
