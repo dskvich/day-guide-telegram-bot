@@ -114,9 +114,9 @@ func setupServices() (service.Group, error) {
 	}
 
 	if svc, err = weather.NewLoaderService(
+		locations,
 		openWeatherClient,
 		weatherRepo,
-		locations,
 		30*time.Minute,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
@@ -141,8 +141,13 @@ func setupServices() (service.Group, error) {
 
 	openExchangeRatesClient := openexchangerates.NewClient(cfg.OpenExchangeRatesAPPID)
 	exchangeRatesRepo := repository.NewExchangeRatesRepository(db)
+	pairs := []domain.CurrencyPair{
+		{domain.USD, domain.RUB},
+		{domain.USD, domain.TRY},
+	}
 
 	if svc, err = exchangerates.NewLoaderService(
+		pairs,
 		openExchangeRatesClient,
 		exchangeRatesRepo,
 		time.Hour,
@@ -152,11 +157,11 @@ func setupServices() (service.Group, error) {
 		return nil, err
 	}
 
-	exchangeRatesReportGenerator := report.NewExchangeRates(exchangeRatesRepo, &formatter.ExchageRates{})
+	exchangeRatesReportGenerator := report.NewExchangeRates(pairs, exchangeRatesRepo, &formatter.ExchangeRate{}, gptClient)
 
 	if svc, err = broadcaster.NewBroadcasterService(
 		"exchange rates",
-		"0 6,8,10,12,14,16 * * *",
+		"30 6,8,10,12,14,16 * * *",
 		chatRepository,
 		exchangeRatesReportGenerator,
 		messagesCh,

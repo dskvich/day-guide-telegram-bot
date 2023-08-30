@@ -10,7 +10,7 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
 )
 
-type Provider interface {
+type Fetcher interface {
 	FetchCurrent(context.Context, domain.Location) (*domain.Weather, error)
 }
 
@@ -19,23 +19,23 @@ type Saver interface {
 }
 
 type loaderService struct {
-	provider        Provider
-	saver           Saver
-	targetLocations []domain.Location
-	poolInterval    time.Duration
+	locations    []domain.Location
+	fetcher      Fetcher
+	saver        Saver
+	poolInterval time.Duration
 }
 
 func NewLoaderService(
-	provider Provider,
+	locations []domain.Location,
+	fetcher Fetcher,
 	saver Saver,
-	targetLocations []domain.Location,
 	poolInterval time.Duration,
 ) (*loaderService, error) {
 	return &loaderService{
-		provider:        provider,
-		saver:           saver,
-		targetLocations: targetLocations,
-		poolInterval:    poolInterval,
+		locations:    locations,
+		fetcher:      fetcher,
+		saver:        saver,
+		poolInterval: poolInterval,
 	}, nil
 }
 
@@ -63,7 +63,7 @@ func (s *loaderService) load(ctx context.Context) error {
 	slog.Info("starting weather loader pass")
 	startAt := time.Now()
 
-	for _, loc := range s.targetLocations {
+	for _, loc := range s.locations {
 		if err := s.fetchAndSave(ctx, loc); err != nil {
 			slog.Error("processing location", "location", loc, logger.Err(err))
 			continue
@@ -75,7 +75,7 @@ func (s *loaderService) load(ctx context.Context) error {
 }
 
 func (s *loaderService) fetchAndSave(ctx context.Context, location domain.Location) error {
-	weather, err := s.provider.FetchCurrent(ctx, location)
+	weather, err := s.fetcher.FetchCurrent(ctx, location)
 	if err != nil {
 		return fmt.Errorf("fetching weather for location %s: %w", location, err)
 	}

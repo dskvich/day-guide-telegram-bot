@@ -17,12 +17,12 @@ func NewExchangeRatesRepository(db *sql.DB) *exchangeRatesRepository {
 	return &exchangeRatesRepository{db: db}
 }
 
-func (repo *exchangeRatesRepository) Save(ctx context.Context, r *domain.USDExchangeRates) error {
-	set := []string{"rub", "try"}
-	args := []any{r.RUB, r.TRY}
-	placeholder := []string{"?", "?"}
+func (repo *exchangeRatesRepository) Save(ctx context.Context, e *domain.ExchangeRate) error {
+	set := []string{"base", "quote", "rate"}
+	args := []any{e.Pair.Base, e.Pair.Quote, e.Rate}
+	placeholder := []string{"?", "?", "?"}
 
-	q := `insert into usd_exchange_rates (` + strings.Join(set, ", ") + `) values (` + strings.Join(placeholder, ",") + `)`
+	q := `insert into exchange_rates (` + strings.Join(set, ", ") + `) values (` + strings.Join(placeholder, ",") + `)`
 
 	if _, err := repo.db.ExecContext(ctx, q, args...); err != nil {
 		return fmt.Errorf("executing query: %v", err)
@@ -31,23 +31,22 @@ func (repo *exchangeRatesRepository) Save(ctx context.Context, r *domain.USDExch
 	return nil
 }
 
-func (repo *exchangeRatesRepository) FetchLatest(ctx context.Context) (*domain.USDExchangeRates, error) {
+func (repo *exchangeRatesRepository) FetchLatestRate(ctx context.Context, pair domain.CurrencyPair) (*domain.ExchangeRate, error) {
 	q := `
-		select 
-		    rub,
-		    try
-		from usd_exchange_rates
+		select rate
+		from exchange_rates
+		where base = ?
+		and quote = ?
 		order by created_at desc
 		limit 1;
 	`
 
-	var r domain.USDExchangeRates
-	if err := repo.db.QueryRowContext(ctx, q).Scan(
-		&r.RUB,
-		&r.TRY,
+	e := domain.ExchangeRate{Pair: pair}
+	if err := repo.db.QueryRowContext(ctx, q, pair.Base, pair.Quote).Scan(
+		&e.Rate,
 	); err != nil {
 		return nil, fmt.Errorf("scanning row: %v", err)
 	}
 
-	return &r, nil
+	return &e, nil
 }

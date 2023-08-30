@@ -11,25 +11,28 @@ import (
 )
 
 type Fetcher interface {
-	FetchCurrent(ctx context.Context) (*domain.USDExchangeRates, error)
+	FetchCurrent(context.Context, domain.CurrencyPair) (*domain.ExchangeRate, error)
 }
 
 type Saver interface {
-	Save(context.Context, *domain.USDExchangeRates) error
+	Save(context.Context, *domain.ExchangeRate) error
 }
 
 type loaderService struct {
+	pairs        []domain.CurrencyPair
 	fetcher      Fetcher
 	saver        Saver
 	poolInterval time.Duration
 }
 
 func NewLoaderService(
+	pairs []domain.CurrencyPair,
 	fetcher Fetcher,
 	saver Saver,
 	poolInterval time.Duration,
 ) (*loaderService, error) {
 	return &loaderService{
+		pairs:        pairs,
 		fetcher:      fetcher,
 		saver:        saver,
 		poolInterval: poolInterval,
@@ -60,15 +63,26 @@ func (s *loaderService) load(ctx context.Context) error {
 	slog.Info("starting exchange rates loader pass")
 	startAt := time.Now()
 
-	rates, err := s.fetcher.FetchCurrent(ctx)
+	for _, pair := range s.pairs {
+		if err := s.fetchAndSave(ctx, pair); err != nil {
+			slog.Error("processing pair", "pair", pair, logger.Err(err))
+			continue
+		}
+	}
+
+	slog.Info("completed weather loader pass", "elapsed_time", time.Now().Sub(startAt).String())
+	return nil
+}
+
+func (s *loaderService) fetchAndSave(ctx context.Context, pair domain.CurrencyPair) error {
+	weather, err := s.fetcher.FetchCurrent(ctx, pair)
 	if err != nil {
-		return fmt.Errorf("fetching exchange rates: %v", err)
+		return fmt.Errorf("fetching exchange rate for pair %s: %w", pair, err)
 	}
 
-	if err := s.saver.Save(ctx, rates); err != nil {
-		return fmt.Errorf("saving exchange rates: %v", err)
+	if err := s.saver.Save(ctx, weather); err != nil {
+		return fmt.Errorf("saving exchange rate for pair %s: %w", pair, err)
 	}
 
-	slog.Info("completed exchange rates loader pass", "elapsed_time", time.Now().Sub(startAt).String())
 	return nil
 }

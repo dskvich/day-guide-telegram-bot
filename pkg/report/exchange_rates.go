@@ -3,38 +3,63 @@ package report
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
 
-type ExchangeRatesFetcher interface {
-	FetchLatest(context.Context) (*domain.USDExchangeRates, error)
+const exchangeRateAnalysisSuffix = "Предоставь смешной обзор на курс валют. Используй эмоджи и черный юмор без границ."
+
+type ExchangeRateFetcher interface {
+	FetchLatestRate(context.Context, domain.CurrencyPair) (*domain.ExchangeRate, error)
 }
 
 type ExchangeRateFormatter interface {
-	Format(weather domain.USDExchangeRates) string
+	Format(weather domain.ExchangeRate) string
+}
+
+type ExchangeRateAssistant interface {
+	GetResponse(ctx context.Context, prompt string) (string, error)
 }
 
 type exchangeRates struct {
-	fetcher   ExchangeRatesFetcher
+	pairs     []domain.CurrencyPair
+	fetcher   ExchangeRateFetcher
 	formatter ExchangeRateFormatter
+	assistant ExchangeRateAssistant
 }
 
 func NewExchangeRates(
-	fetcher ExchangeRatesFetcher,
+	pairs []domain.CurrencyPair,
+	fetcher ExchangeRateFetcher,
 	formatter ExchangeRateFormatter,
+	assistant ExchangeRateAssistant,
 ) *exchangeRates {
 	return &exchangeRates{
+		pairs:     pairs,
 		fetcher:   fetcher,
 		formatter: formatter,
+		assistant: assistant,
 	}
 }
 
 func (e *exchangeRates) Generate(ctx context.Context) (string, error) {
-	rates, err := e.fetcher.FetchLatest(ctx)
-	if err != nil {
-		return "", fmt.Errorf("fetching latest USD exchange rates: %v", err)
+	var sb strings.Builder
+	for _, pair := range e.pairs {
+		rate, err := e.fetcher.FetchLatestRate(ctx, pair)
+		if err != nil {
+			return "", fmt.Errorf("fetching latest exchange rate for pair %s: %v", pair, err)
+		}
+
+		sb.WriteString(e.formatter.Format(*rate))
+		sb.WriteString("\n")
 	}
 
-	return e.formatter.Format(*rates), nil
+	resp, err := e.assistant.GetResponse(ctx, sb.String()+exchangeRateAnalysisSuffix)
+	if err != nil {
+		return "", fmt.Errorf("generating analysis part: %v", err)
+	}
+
+	sb.WriteString(resp)
+	return sb.String(), nil
 }

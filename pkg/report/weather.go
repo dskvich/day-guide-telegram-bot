@@ -19,28 +19,28 @@ type WeatherFormatter interface {
 	Format(weather domain.Weather) string
 }
 
-type GPTProvider interface {
+type WeatherAssistant interface {
 	GetResponse(ctx context.Context, prompt string) (string, error)
 }
 
 type weather struct {
-	locations   []domain.Location
-	fetcher     WeatherFetcher
-	formatter   WeatherFormatter
-	gptProvider GPTProvider
+	locations []domain.Location
+	fetcher   WeatherFetcher
+	formatter WeatherFormatter
+	assistant WeatherAssistant
 }
 
 func NewWeather(
 	locations []domain.Location,
 	fetcher WeatherFetcher,
 	formatter WeatherFormatter,
-	gptProvider GPTProvider,
+	assistant WeatherAssistant,
 ) *weather {
 	return &weather{
-		locations:   locations,
-		fetcher:     fetcher,
-		formatter:   formatter,
-		gptProvider: gptProvider,
+		locations: locations,
+		fetcher:   fetcher,
+		formatter: formatter,
+		assistant: assistant,
 	}
 }
 
@@ -56,7 +56,7 @@ func (r *weather) Generate(ctx context.Context) (string, error) {
 		sb.WriteString("\n")
 	}
 
-	resp, err := r.gptProvider.GetResponse(ctx, sb.String()+weatherAnalysisQuerySuffix)
+	resp, err := r.assistant.GetResponse(ctx, sb.String()+weatherAnalysisQuerySuffix)
 	if err != nil {
 		return "", fmt.Errorf("generating analysis part: %v", err)
 	}
