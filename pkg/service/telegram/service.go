@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -10,6 +11,10 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
 )
+
+type Authenticator interface {
+	IsAuthorized(userID int64) bool
+}
 
 type Bot interface {
 	GetUpdates() tgbotapi.UpdatesChannel
@@ -22,17 +27,20 @@ type CommandDispatcher interface {
 
 type service struct {
 	bot               Bot
+	authenticator     Authenticator
 	commandDispatcher CommandDispatcher
 	messages          chan domain.Message
 }
 
 func NewService(
 	bot Bot,
+	authenticator Authenticator,
 	commandDispatcher CommandDispatcher,
 	messages chan domain.Message,
 ) (*service, error) {
 	return &service{
 		bot:               bot,
+		authenticator:     authenticator,
 		commandDispatcher: commandDispatcher,
 		messages:          messages,
 	}, nil
@@ -61,6 +69,16 @@ func (s *service) Run(ctx context.Context) error {
 func (s *service) handleUpdate(update tgbotapi.Update) {
 	if update.Message != nil {
 		slog.Info("update message received", "chat", update.Message.Chat.ID, "user", update.Message.From, "text", update.Message.Text)
+
+		if !s.authenticator.IsAuthorized(update.Message.From.ID) {
+			s.messages <- &domain.TextMessage{
+				ChatID:           update.Message.Chat.ID,
+				ReplyToMessageID: update.Message.MessageID,
+				Content:          fmt.Sprintf("User ID %d not authorized to use this bot.", update.Message.From.ID),
+			}
+			return
+		}
+
 		if message := s.commandDispatcher.Dispatch(update); message != nil {
 			s.messages <- message
 		}

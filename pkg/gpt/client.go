@@ -8,27 +8,30 @@ import (
 	"net/url"
 )
 
-const baseURL = "http://chatgpt-telegram-bot:8080/api/gpt/generate"
-
 type client struct {
-	hc *http.Client
+	baseURL *url.URL
+	hc      *http.Client
 }
 
-func NewClient() *client {
-	return &client{
-		hc: &http.Client{},
-	}
-}
-
-func (c *client) GetResponse(ctx context.Context, prompt string) (string, error) {
-	u, err := url.Parse(baseURL)
+func NewClient(base string) (*client, error) {
+	u, err := url.Parse(base)
 	if err != nil {
-		return "", fmt.Errorf("parsing base url: %v", err)
+		return nil, fmt.Errorf("parsing base URL: %v", err)
 	}
+	return &client{
+		baseURL: u,
+		hc:      &http.Client{},
+	}, nil
+}
 
+func (c *client) generateURL() *url.URL {
+	const endpointPath = "/api/gpt/generate"
+	return c.baseURL.ResolveReference(&url.URL{Path: endpointPath})
+}
+func (c *client) GetResponse(ctx context.Context, prompt string) (string, error) {
+	u := c.generateURL()
 	q := u.Query()
 	q.Set("prompt", prompt)
-
 	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)

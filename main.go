@@ -11,6 +11,7 @@ import (
 
 	"github.com/caarlos0/env/v9"
 
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/auth"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/command"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/command/handler"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/database"
@@ -31,9 +32,11 @@ import (
 )
 
 type Config struct {
-	TelegramBotToken       string `env:"TELEGRAM_BOT_TOKEN,required"`
-	OpenWeatherMapAPIKey   string `env:"OPEN_WEATHER_MAP_API_KEY,required"`
-	OpenExchangeRatesAPPID string `env:"OPEN_EXCHANGE_RATES_APP_ID,required"`
+	TelegramBotToken          string  `env:"TELEGRAM_BOT_TOKEN,required"`
+	OpenWeatherMapAPIKey      string  `env:"OPEN_WEATHER_MAP_API_KEY,required"`
+	OpenExchangeRatesAPPID    string  `env:"OPEN_EXCHANGE_RATES_APP_ID,required"`
+	ChatGPTTelegramBotURL     string  `env:"CHAT_GPT_TELEGRAM_BOT_URL" envDefault:"http://chatgpt-telegram-bot:8080"`
+	TelegramAuthorizedUserIDs []int64 `env:"TELEGRAM_AUTHORIZED_USER_IDS" envSeparator:" "`
 }
 
 func main() {
@@ -88,23 +91,8 @@ func setupServices() (service.Group, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating telegram bot: %v", err)
 	}
+	authenticator := auth.NewAuthenticator(cfg.TelegramAuthorizedUserIDs)
 
-	chatRepository := repository.NewChatRepository(db)
-	defaultHandler := handler.NewRegister(chatRepository)
-	handlers := []command.Handler{
-		handler.NewRegister(chatRepository),
-	}
-
-	dispatcher := command.NewDispatcher(handlers, defaultHandler)
-	messagesCh := make(chan domain.Message)
-
-	if svc, err = telegram.NewService(bot, dispatcher, messagesCh); err == nil {
-		svcGroup = append(svcGroup, svc)
-	} else {
-		return nil, err
-	}
-
-	openWeatherClient := openweathermap.NewClient(cfg.OpenWeatherMapAPIKey)
 	weatherRepo := repository.NewWeatherRepository(db)
 	locations := []domain.Location{
 		domain.SaintPetersburg,
@@ -112,6 +100,40 @@ func setupServices() (service.Group, error) {
 		domain.Phuket,
 		domain.Antalya,
 	}
+
+	gptClient, err := gpt.NewClient(cfg.ChatGPTTelegramBotURL)
+	if err != nil {
+		return nil, fmt.Errorf("creating gpt client: %v", err)
+	}
+
+	weatherReportGenerator := report.NewWeather(locations, weatherRepo, &formatter.Weather{}, gptClient)
+
+	exchangeRatesRepo := repository.NewExchangeRatesRepository(db)
+	pairs := []domain.CurrencyPair{
+		{domain.USD, domain.RUB},
+		{domain.USD, domain.TRY},
+	}
+
+	exchangeRatesReportGenerator := report.NewExchangeRates(pairs, exchangeRatesRepo, &formatter.ExchangeRate{}, gptClient)
+
+	chatRepository := repository.NewChatRepository(db)
+	defaultHandler := handler.NewRegister(chatRepository)
+	handlers := []command.Handler{
+		handler.NewRegister(chatRepository),
+		handler.NewWeather(weatherReportGenerator),
+		handler.NewExchangeRate(exchangeRatesReportGenerator),
+	}
+
+	dispatcher := command.NewDispatcher(handlers, defaultHandler)
+	messagesCh := make(chan domain.Message)
+
+	if svc, err = telegram.NewService(bot, authenticator, dispatcher, messagesCh); err == nil {
+		svcGroup = append(svcGroup, svc)
+	} else {
+		return nil, err
+	}
+
+	openWeatherClient := openweathermap.NewClient(cfg.OpenWeatherMapAPIKey)
 
 	if svc, err = weather.NewLoaderService(
 		locations,
@@ -123,9 +145,6 @@ func setupServices() (service.Group, error) {
 	} else {
 		return nil, err
 	}
-
-	gptClient := gpt.NewClient()
-	weatherReportGenerator := report.NewWeather(locations, weatherRepo, &formatter.Weather{}, gptClient)
 
 	if svc, err = broadcaster.NewBroadcasterService(
 		"weather",
@@ -140,11 +159,6 @@ func setupServices() (service.Group, error) {
 	}
 
 	openExchangeRatesClient := openexchangerates.NewClient(cfg.OpenExchangeRatesAPPID)
-	exchangeRatesRepo := repository.NewExchangeRatesRepository(db)
-	pairs := []domain.CurrencyPair{
-		{domain.USD, domain.RUB},
-		{domain.USD, domain.TRY},
-	}
 
 	if svc, err = exchangerates.NewLoaderService(
 		pairs,
@@ -156,8 +170,6 @@ func setupServices() (service.Group, error) {
 	} else {
 		return nil, err
 	}
-
-	exchangeRatesReportGenerator := report.NewExchangeRates(pairs, exchangeRatesRepo, &formatter.ExchangeRate{}, gptClient)
 
 	if svc, err = broadcaster.NewBroadcasterService(
 		"exchange rates",
