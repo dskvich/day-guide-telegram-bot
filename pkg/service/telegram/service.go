@@ -61,7 +61,9 @@ func (s *service) Run(ctx context.Context) error {
 func (s *service) handleUpdate(update tgbotapi.Update) {
 	if update.Message != nil {
 		slog.Info("update message received", "chat", update.Message.Chat.ID, "user", update.Message.From, "text", update.Message.Text)
-		s.messages <- s.commandDispatcher.Dispatch(update)
+		if message := s.commandDispatcher.Dispatch(update); message != nil {
+			s.messages <- message
+		}
 	}
 }
 

@@ -30,9 +30,5 @@ func (d *dispatcher) Dispatch(update tgbotapi.Update) domain.Message {
 		}
 	}
 
-	return &domain.TextMessage{
-		ChatID:           update.Message.Chat.ID,
-		ReplyToMessageID: update.Message.MessageID,
-		Content:          "Sorry, I couldn't understand that command",
-	}
+	return nil
 }
