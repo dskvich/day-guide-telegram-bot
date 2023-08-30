@@ -9,7 +9,7 @@ import (
 )
 
 const weatherAnalysisQuerySuffix = `Проанализируй текущие погодные данные, учитывая "ощущаемую" температуру в скобках, 
-и представь аналитику с юмором. Используй эмоджи и черный юмор без границ.`
+и представь аналитику с юмором. Используй эмоджи и черный юмор без границ. Используй популярные высказывания и мемы из русскоязычного сегмента интернета.`
 
 type WeatherFetcher interface {
 	FetchLatestByLocation(context.Context, domain.Location) (*domain.Weather, error)

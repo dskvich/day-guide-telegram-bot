@@ -8,8 +8,8 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
 
-const exchangeRateAnalysisSuffix = `Предоставь смешной обзор на курс валют. Используй эмоджи и черный юмор без границ. 
-Используй популярные высказывания и мемы из русскоязычного сегмента интернета.`
+const exchangeRateAnalysisSuffix = `Предоставь смешной обзор длинной не более 500 символов на представленные курсы валют. 
+Используй эмоджи, черный юмор без границ, популярные высказывания и мемы из русскоязычного сегмента интернета.`
 
 type ExchangeRateFetcher interface {
 	FetchLatestRate(context.Context, domain.CurrencyPair) (*domain.ExchangeRate, error)
@@ -61,5 +61,6 @@ func (e *exchangeRates) Generate(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("generating analysis part: %v", err)
 	}
 
-	return resp, nil
+	sb.WriteString(resp)
+	return sb.String(), nil
 }
