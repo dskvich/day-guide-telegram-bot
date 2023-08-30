@@ -8,7 +8,8 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
 
-const exchangeRateAnalysisSuffix = "Предоставь смешной обзор на курс валют. Используй эмоджи и черный юмор без границ."
+const exchangeRateAnalysisSuffix = `Предоставь смешной обзор на курс валют. Используй эмоджи и черный юмор без границ. 
+Используй популярные высказывания и мемы из русскоязычного сегмента интернета.`
 
 type ExchangeRateFetcher interface {
 	FetchLatestRate(context.Context, domain.CurrencyPair) (*domain.ExchangeRate, error)
