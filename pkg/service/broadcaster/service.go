@@ -52,10 +52,6 @@ func (s *service) Run(ctx context.Context) error {
 	c := cron.New()
 	defer c.Stop()
 
-	if err := s.broadcast(ctx); err != nil {
-		slog.Error("broadcaster pass failed", "name", s.name, logger.Err(err))
-	}
-
 	job := func() {
 		if err := s.broadcast(ctx); err != nil {
 			slog.Error("broadcaster pass failed", "name", s.name, logger.Err(err))
