@@ -60,6 +60,5 @@ func (e *exchangeRates) Generate(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("generating analysis part: %v", err)
 	}
 
-	sb.WriteString(resp)
-	return sb.String(), nil
+	return resp, nil
 }
