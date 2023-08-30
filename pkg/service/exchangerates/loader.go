@@ -70,17 +70,17 @@ func (s *loaderService) load(ctx context.Context) error {
 		}
 	}
 
-	slog.Info("completed weather loader pass", "elapsed_time", time.Now().Sub(startAt).String())
+	slog.Info("completed exchange rates loader pass", "elapsed_time", time.Now().Sub(startAt).String())
 	return nil
 }
 
 func (s *loaderService) fetchAndSave(ctx context.Context, pair domain.CurrencyPair) error {
-	weather, err := s.fetcher.FetchCurrent(ctx, pair)
+	rate, err := s.fetcher.FetchCurrent(ctx, pair)
 	if err != nil {
 		return fmt.Errorf("fetching exchange rate for pair %s: %w", pair, err)
 	}
 
-	if err := s.saver.Save(ctx, weather); err != nil {
+	if err := s.saver.Save(ctx, rate); err != nil {
 		return fmt.Errorf("saving exchange rate for pair %s: %w", pair, err)
 	}
 
