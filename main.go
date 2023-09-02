@@ -97,7 +97,6 @@ func setupServices() (service.Group, error) {
 	locations := []domain.Location{
 		domain.SaintPetersburg,
 		domain.Pitkyaranta,
-		domain.Phuket,
 		domain.Antalya,
 	}
 
@@ -173,7 +172,7 @@ func setupServices() (service.Group, error) {
 
 	if svc, err = broadcaster.NewBroadcasterService(
 		"exchange rates",
-		"30 6,8,10,12,14,16 * * *",
+		"30 6,10,15 * * *",
 		chatRepository,
 		exchangeRatesReportGenerator,
 		messagesCh,
