@@ -55,6 +55,7 @@ jobs:
             docker run -d \
             --name $IMAGE_NAME \
             -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
+            -e TELEGRAM_AUTHORIZED_USER_IDS="${{ vars.TELEGRAM_AUTHORIZED_USER_IDS }}" \
             -e OPEN_WEATHER_MAP_API_KEY="${{ secrets.OPEN_WEATHER_MAP_API_KEY }}" \
             -e OPEN_EXCHANGE_RATES_APP_ID="${{ secrets.OPEN_EXCHANGE_RATES_APP_ID }}" \
             -v /app/day-guide.db:/app/day-guide.db \
