@@ -203,9 +203,9 @@ func setupServices() (service.Group, error) {
 
 	if svc, err = broadcaster.NewService(
 		"moon phase broadcaster",
-		"10 16 * * *",
+		"15 16 * * *",
 		chatRepository,
-		weatherReportGenerator,
+		moonPhaseReportGenerator,
 		messagesCh,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
