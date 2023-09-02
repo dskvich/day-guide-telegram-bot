@@ -16,6 +16,7 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/command/handler"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/database"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/farmsense"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/formatter"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/gpt"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
@@ -26,6 +27,7 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/broadcaster"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/exchangerates"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/moonphase"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/telegram"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/weather"
 	telegrambot "github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram"
@@ -115,12 +117,17 @@ func setupServices() (service.Group, error) {
 
 	exchangeRatesReportGenerator := report.NewExchangeRates(pairs, exchangeRatesRepo, &formatter.ExchangeRate{}, gptClient)
 
+	moonPhaseRepo := repository.NewMoonPhaseRepository(db)
+
+	moonPhaseReportGenerator := report.NewMoonPhases(moonPhaseRepo, &formatter.MoonPhase{}, gptClient)
+
 	chatRepository := repository.NewChatRepository(db)
 	defaultHandler := handler.NewRegister(chatRepository)
 	handlers := []command.Handler{
 		handler.NewRegister(chatRepository),
 		handler.NewWeather(weatherReportGenerator),
 		handler.NewExchangeRate(exchangeRatesReportGenerator),
+		handler.NewMoonPhase(moonPhaseReportGenerator),
 	}
 
 	dispatcher := command.NewDispatcher(handlers, defaultHandler)
@@ -145,8 +152,8 @@ func setupServices() (service.Group, error) {
 		return nil, err
 	}
 
-	if svc, err = broadcaster.NewBroadcasterService(
-		"weather",
+	if svc, err = broadcaster.NewService(
+		"weather broadcaster",
 		"0 6,10,15 * * *",
 		chatRepository,
 		weatherReportGenerator,
@@ -170,11 +177,35 @@ func setupServices() (service.Group, error) {
 		return nil, err
 	}
 
-	if svc, err = broadcaster.NewBroadcasterService(
-		"exchange rates",
+	if svc, err = broadcaster.NewService(
+		"exchange rates broadcaster",
 		"30 6,10,15 * * *",
 		chatRepository,
 		exchangeRatesReportGenerator,
+		messagesCh,
+	); err == nil {
+		svcGroup = append(svcGroup, svc)
+	} else {
+		return nil, err
+	}
+
+	farmSenseClient := farmsense.NewClient()
+
+	if svc, err = moonphase.NewLoaderService(
+		farmSenseClient,
+		moonPhaseRepo,
+		30*time.Minute,
+	); err == nil {
+		svcGroup = append(svcGroup, svc)
+	} else {
+		return nil, err
+	}
+
+	if svc, err = broadcaster.NewService(
+		"moon phase broadcaster",
+		"10 16 * * *",
+		chatRepository,
+		weatherReportGenerator,
 		messagesCh,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)

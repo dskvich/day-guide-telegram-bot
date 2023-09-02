@@ -28,7 +28,7 @@ type service struct {
 	outCh           chan<- domain.Message
 }
 
-func NewBroadcasterService(
+func NewService(
 	name, cron string,
 	chatFetcher ChatFetcher,
 	reportGenerator ReportGenerator,
@@ -43,18 +43,18 @@ func NewBroadcasterService(
 	}, nil
 }
 
-func (s *service) Name() string { return s.name + " broadcaster" }
+func (s *service) Name() string { return s.name }
 
 func (s *service) Run(ctx context.Context) error {
-	slog.Info("starting broadcaster service", "name", s.name, "cron", s.cron)
-	defer slog.Info("stopped broadcaster service", "name", s.name)
+	slog.Info(fmt.Sprintf("starting %s service", s.name), "cron", s.cron)
+	defer slog.Info(fmt.Sprintf("stopped %s service", s.name))
 
 	c := cron.New()
 	defer c.Stop()
 
 	job := func() {
 		if err := s.broadcast(ctx); err != nil {
-			slog.Error("broadcaster pass failed", "name", s.name, logger.Err(err))
+			slog.Error(fmt.Sprintf("%s pass failed", s.name), logger.Err(err))
 		}
 	}
 
@@ -70,7 +70,7 @@ func (s *service) Run(ctx context.Context) error {
 }
 
 func (s *service) broadcast(ctx context.Context) error {
-	slog.Info("starting broadcaster pass", "name", s.name)
+	slog.Info(fmt.Sprintf("starting %s pass", s.name))
 	startAt := time.Now()
 
 	chatIDs, err := s.chatFetcher.GetIDs(ctx)
@@ -90,6 +90,6 @@ func (s *service) broadcast(ctx context.Context) error {
 		}
 	}
 
-	slog.Info("completed broadcaster pass", "name", s.name, "elapsed_time", time.Now().Sub(startAt).String())
+	slog.Info(fmt.Sprintf("completed %s pass", s.name), "elapsed_time", time.Now().Sub(startAt).String())
 	return nil
 }
