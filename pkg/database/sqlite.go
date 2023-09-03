@@ -10,7 +10,21 @@ import (
 )
 
 const (
-	dbName   = "day-guide.db"
+	dbName = "day-guide.db"
+	// Connect to the database with some sane settings:
+	// - No shared-cache: it's obsolete; WAL journal mode is a better solution.
+	// - No foreign key constraints: it's currently disabled by default, but it's a
+	// good practice to be explicit and prevent future surprises on SQLite upgrades.
+	// - Journal mode set to WAL: it's the recommended journal mode for most applications
+	// as it prevents locking issues.
+	//
+	// Notes:
+	// - When using the `modernc.org/sqlite` driver, each pragma must be prefixed with `_pragma=`.
+	//
+	// References:
+	// - https://pkg.go.dev/modernc.org/sqlite#Driver.Open
+	// - https://www.sqlite.org/sharedcache.html
+	// - https://www.sqlite.org/pragma.html
 	settings = "?_pragma=foreign_keys(0)&_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)"
 )
 
