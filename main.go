@@ -26,10 +26,8 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/repository"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/broadcaster"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/exchangerates"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/moonphase"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/loader"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/telegram"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/weather"
 	telegrambot "github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram"
 )
 
@@ -141,7 +139,8 @@ func setupServices() (service.Group, error) {
 
 	openWeatherClient := openweathermap.NewClient(cfg.OpenWeatherMapAPIKey)
 
-	if svc, err = weather.NewLoaderService(
+	if svc, err = loader.NewService[*domain.Weather, domain.Location](
+		"weather loader",
 		locations,
 		openWeatherClient,
 		weatherRepo,
@@ -166,7 +165,8 @@ func setupServices() (service.Group, error) {
 
 	openExchangeRatesClient := openexchangerates.NewClient(cfg.OpenExchangeRatesAPPID)
 
-	if svc, err = exchangerates.NewLoaderService(
+	if svc, err = loader.NewService[*domain.ExchangeRate, domain.CurrencyPair](
+		"exchange rates loader",
 		pairs,
 		openExchangeRatesClient,
 		exchangeRatesRepo,
@@ -191,7 +191,9 @@ func setupServices() (service.Group, error) {
 
 	farmSenseClient := farmsense.NewClient()
 
-	if svc, err = moonphase.NewLoaderService(
+	if svc, err = loader.NewService[*domain.MoonPhase, struct{}](
+		"moon phases loader",
+		nil,
 		farmSenseClient,
 		moonPhaseRepo,
 		30*time.Minute,

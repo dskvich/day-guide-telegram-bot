@@ -20,5 +20,5 @@
 # Go workspace file
 go.work
 .env
-day-guide.db
+day-guide.db*
 .idea/

@@ -9,13 +9,16 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const dbName = "day-guide.db"
+const (
+	dbName   = "day-guide.db"
+	settings = "?_pragma=foreign_keys(0)&_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)"
+)
 
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
 func NewSQLite() (*sql.DB, error) {
-	db, err := sql.Open("sqlite", dbName)
+	db, err := sql.Open("sqlite", dbName+settings)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to db: %v", err)
 	}

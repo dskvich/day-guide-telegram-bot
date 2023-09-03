@@ -24,7 +24,7 @@ func NewClient() *client {
 	}
 }
 
-func (c *client) FetchCurrent(ctx context.Context) (*domain.MoonPhase, error) {
+func (c *client) FetchData(ctx context.Context) (*domain.MoonPhase, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("parsing base url: %v", err)

@@ -24,7 +24,7 @@ func NewClient(apiKey string) *client {
 	}
 }
 
-func (c *client) FetchCurrent(ctx context.Context, location domain.Location) (*domain.Weather, error) {
+func (c *client) FetchData(ctx context.Context, location domain.Location) (*domain.Weather, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("parsing base url: %v", err)
