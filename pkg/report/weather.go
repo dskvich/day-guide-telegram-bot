@@ -8,9 +8,11 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
 
-const weatherAnalysisQuerySuffix = `Проанализируй текущие погодные данные, учитывая "ощущаемую" температуру в скобках, 
+const weatherAnalysisQuerySuffix = `
+Проанализируй текущие погодные данные, учитывая "ощущаемую" температуру в скобках, 
 и представь аналитику длинной не более 1000 символов с юмором.
-Используй эмоджи, черный юмор без границ, популярные высказывания и мемы из русскоязычного сегмента интернета.`
+Используй эмоджи, черный юмор без границ, популярные высказывания и мемы из русскоязычного сегмента интернета.
+`
 
 type WeatherFetcher interface {
 	FetchLatestByLocation(context.Context, domain.Location) (*domain.Weather, error)
@@ -45,19 +47,19 @@ func NewWeather(
 	}
 }
 
-func (r *weather) Generate(ctx context.Context) (string, error) {
+func (w *weather) Generate(ctx context.Context) (string, error) {
 	var sb strings.Builder
-	for _, loc := range r.locations {
-		weather, err := r.fetcher.FetchLatestByLocation(ctx, loc)
+	for _, loc := range w.locations {
+		weather, err := w.fetcher.FetchLatestByLocation(ctx, loc)
 		if err != nil {
 			return "", fmt.Errorf("fetching latest weather for location %s: %v", loc, err)
 		}
 
-		sb.WriteString(r.formatter.Format(*weather))
+		sb.WriteString(w.formatter.Format(*weather))
 		sb.WriteString("\n")
 	}
 
-	resp, err := r.assistant.GetResponse(ctx, sb.String()+weatherAnalysisQuerySuffix)
+	resp, err := w.assistant.GetResponse(ctx, sb.String()+weatherAnalysisQuerySuffix)
 	if err != nil {
 		return "", fmt.Errorf("generating analysis part: %v", err)
 	}

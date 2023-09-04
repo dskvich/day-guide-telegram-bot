@@ -46,9 +46,9 @@ func NewService(
 	}, nil
 }
 
-func (s *service) Name() string { return "telegram bot" }
+func (svc *service) Name() string { return "telegram bot" }
 
-func (s *service) Run(ctx context.Context) error {
+func (svc *service) Run(ctx context.Context) error {
 	slog.Info("starting telegram bot service")
 	defer slog.Info("stopped telegram bot service")
 
@@ -56,22 +56,22 @@ func (s *service) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return nil
-		case update := <-s.bot.GetUpdates():
-			go s.handleUpdate(update)
-		case message := <-s.messages:
-			go s.handleMessage(message)
+		case update := <-svc.bot.GetUpdates():
+			go svc.handleUpdate(update)
+		case message := <-svc.messages:
+			go svc.handleMessage(message)
 		default:
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
 }
 
-func (s *service) handleUpdate(update tgbotapi.Update) {
+func (svc *service) handleUpdate(update tgbotapi.Update) {
 	if update.Message != nil {
 		slog.Info("update message received", "chat", update.Message.Chat.ID, "user", update.Message.From, "text", update.Message.Text)
 
-		if !s.authenticator.IsAuthorized(update.Message.From.ID) {
-			s.messages <- &domain.TextMessage{
+		if !svc.authenticator.IsAuthorized(update.Message.From.ID) {
+			svc.messages <- &domain.TextMessage{
 				ChatID:           update.Message.Chat.ID,
 				ReplyToMessageID: update.Message.MessageID,
 				Content:          fmt.Sprintf("User ID %d not authorized to use this bot.", update.Message.From.ID),
@@ -79,14 +79,14 @@ func (s *service) handleUpdate(update tgbotapi.Update) {
 			return
 		}
 
-		if message := s.commandDispatcher.Dispatch(update); message != nil {
-			s.messages <- message
+		if message := svc.commandDispatcher.Dispatch(update); message != nil {
+			svc.messages <- message
 		}
 	}
 }
 
-func (s *service) handleMessage(message domain.Message) {
-	if err := s.bot.Send(message); err != nil {
+func (svc *service) handleMessage(message domain.Message) {
+	if err := svc.bot.Send(message); err != nil {
 		slog.Error("sending message", logger.Err(err))
 	}
 }

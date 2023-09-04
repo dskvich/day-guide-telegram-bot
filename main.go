@@ -37,6 +37,7 @@ type Config struct {
 	OpenExchangeRatesAPPID    string  `env:"OPEN_EXCHANGE_RATES_APP_ID,required"`
 	ChatGPTTelegramBotURL     string  `env:"CHAT_GPT_TELEGRAM_BOT_URL" envDefault:"http://chatgpt-telegram-bot:8080"`
 	TelegramAuthorizedUserIDs []int64 `env:"TELEGRAM_AUTHORIZED_USER_IDS" envSeparator:" "`
+	QuotesRestAPIKey          string  `env:"QUOTES_REST_API_KEY,required"`
 }
 
 func main() {
@@ -93,39 +94,40 @@ func setupServices() (service.Group, error) {
 	}
 	authenticator := auth.NewAuthenticator(cfg.TelegramAuthorizedUserIDs)
 
-	weatherRepo := repository.NewWeatherRepository(db)
-	locations := []domain.Location{
-		domain.SaintPetersburg,
-		domain.Pitkyaranta,
-		domain.Antalya,
-	}
-
 	gptClient, err := gpt.NewClient(cfg.ChatGPTTelegramBotURL)
 	if err != nil {
 		return nil, fmt.Errorf("creating gpt client: %v", err)
 	}
 
+	locations := []domain.Location{
+		domain.SaintPetersburg,
+		domain.Pitkyaranta,
+		domain.Antalya,
+	}
+	weatherRepo := repository.NewWeatherRepository(db)
 	weatherReportGenerator := report.NewWeather(locations, weatherRepo, &formatter.Weather{}, gptClient)
 
-	exchangeRatesRepo := repository.NewExchangeRatesRepository(db)
 	pairs := []domain.CurrencyPair{
 		{domain.USD, domain.RUB},
 		{domain.USD, domain.TRY},
 	}
-
-	exchangeRatesReportGenerator := report.NewExchangeRates(pairs, exchangeRatesRepo, &formatter.ExchangeRate{}, gptClient)
+	exchangeRateRepo := repository.NewExchangeRateRepository(db)
+	exchangeRateReportGenerator := report.NewExchangeRate(pairs, exchangeRateRepo, &formatter.ExchangeRate{}, gptClient)
 
 	moonPhaseRepo := repository.NewMoonPhaseRepository(db)
+	moonPhaseReportGenerator := report.NewMoonPhase(moonPhaseRepo, &formatter.MoonPhase{}, gptClient)
 
-	moonPhaseReportGenerator := report.NewMoonPhases(moonPhaseRepo, &formatter.MoonPhase{}, gptClient)
+	quoteRepo := repository.NewQuoteRepository(db)
+	quoteReportGenerator := report.NewQuote(quoteRepo, &formatter.Quote{}, gptClient)
 
 	chatRepository := repository.NewChatRepository(db)
 	defaultHandler := handler.NewRegister(chatRepository)
 	handlers := []command.Handler{
 		handler.NewRegister(chatRepository),
 		handler.NewWeather(weatherReportGenerator),
-		handler.NewExchangeRate(exchangeRatesReportGenerator),
+		handler.NewExchangeRate(exchangeRateReportGenerator),
 		handler.NewMoonPhase(moonPhaseReportGenerator),
+		handler.NewQuote(quoteReportGenerator),
 	}
 
 	dispatcher := command.NewDispatcher(handlers, defaultHandler)
@@ -153,7 +155,7 @@ func setupServices() (service.Group, error) {
 
 	if svc, err = broadcaster.NewService(
 		"weather broadcaster",
-		"0 6,10,15 * * *",
+		"0 5,10,15 * * *",
 		chatRepository,
 		weatherReportGenerator,
 		messagesCh,
@@ -166,10 +168,10 @@ func setupServices() (service.Group, error) {
 	openExchangeRatesClient := openexchangerates.NewClient(cfg.OpenExchangeRatesAPPID)
 
 	if svc, err = loader.NewService[*domain.ExchangeRate, domain.CurrencyPair](
-		"exchange rates loader",
+		"exchange rate loader",
 		pairs,
 		openExchangeRatesClient,
-		exchangeRatesRepo,
+		exchangeRateRepo,
 		time.Hour,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
@@ -178,10 +180,10 @@ func setupServices() (service.Group, error) {
 	}
 
 	if svc, err = broadcaster.NewService(
-		"exchange rates broadcaster",
-		"30 6,10,15 * * *",
+		"exchange rate broadcaster",
+		"10 5,10,15 * * *",
 		chatRepository,
-		exchangeRatesReportGenerator,
+		exchangeRateReportGenerator,
 		messagesCh,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
@@ -192,7 +194,7 @@ func setupServices() (service.Group, error) {
 	farmSenseClient := farmsense.NewClient()
 
 	if svc, err = loader.NewService[*domain.MoonPhase, struct{}](
-		"moon phases loader",
+		"moon phase loader",
 		nil,
 		farmSenseClient,
 		moonPhaseRepo,
@@ -208,6 +210,32 @@ func setupServices() (service.Group, error) {
 		"15 16 * * *",
 		chatRepository,
 		moonPhaseReportGenerator,
+		messagesCh,
+	); err == nil {
+		svcGroup = append(svcGroup, svc)
+	} else {
+		return nil, err
+	}
+	/*
+		quotesRestClient := quotesrest.NewClient(cfg.QuotesRestAPIKey)
+
+		if svc, err = loader.NewService[*domain.Quote, struct{}](
+			"quote loader",
+			nil,
+			quotesRestClient,
+			quoteRepo,
+			8*time.Hour,
+		); err == nil {
+			svcGroup = append(svcGroup, svc)
+		} else {
+			return nil, err
+		}
+	*/
+	if svc, err = broadcaster.NewService(
+		"quote broadcaster",
+		"5 5 * * *",
+		chatRepository,
+		quoteReportGenerator,
 		messagesCh,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)

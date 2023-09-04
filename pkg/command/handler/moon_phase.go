@@ -22,12 +22,12 @@ func NewMoonPhase(reportGenerator WeatherReportGenerator) *moonPhase {
 	return &moonPhase{reportGenerator: reportGenerator}
 }
 
-func (e *moonPhase) CanHandle(update *tgbotapi.Update) bool {
+func (m *moonPhase) CanHandle(update *tgbotapi.Update) bool {
 	return update.Message != nil && strings.HasPrefix(update.Message.Text, "/moon")
 }
 
-func (e *moonPhase) Handle(update *tgbotapi.Update) domain.Message {
-	response, err := e.reportGenerator.Generate(context.TODO())
+func (m *moonPhase) Handle(update *tgbotapi.Update) domain.Message {
+	response, err := m.reportGenerator.Generate(context.TODO())
 	if err != nil {
 		response = fmt.Sprintf("Failed to generate moon phase report: %v", err)
 	}

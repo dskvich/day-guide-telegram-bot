@@ -22,10 +22,10 @@ func NewChatRepository(db *sql.DB) *chatRepository {
 	return &chatRepository{db: db}
 }
 
-func (c *chatRepository) Save(ctx context.Context, chat *domain.Chat) error {
+func (repo *chatRepository) Save(ctx context.Context, chat *domain.Chat) error {
 	q := `insert into chats(id, registered_by) values(?, ?)`
 
-	if _, err := c.db.ExecContext(ctx, q, chat.ID, chat.RegisteredBy); err != nil {
+	if _, err := repo.db.ExecContext(ctx, q, chat.ID, chat.RegisteredBy); err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			return ErrChatAlreadyExists
 		}
@@ -35,10 +35,10 @@ func (c *chatRepository) Save(ctx context.Context, chat *domain.Chat) error {
 	return nil
 }
 
-func (c *chatRepository) GetIDs(ctx context.Context) ([]int64, error) {
+func (repo *chatRepository) GetIDs(ctx context.Context) ([]int64, error) {
 	q := `select id from chats`
 
-	rows, err := c.db.QueryContext(ctx, q)
+	rows, err := repo.db.QueryContext(ctx, q)
 	if err != nil {
 		return nil, fmt.Errorf("querying chat IDs: %v", err)
 	}

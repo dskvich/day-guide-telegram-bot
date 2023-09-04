@@ -8,8 +8,11 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
 
-const exchangeRateAnalysisSuffix = `Предоставь смешной обзор длинной 250-350 символов на представленные курсы валют. 
-Используй эмоджи, черный юмор без границ, популярные смешные высказывания и мемы из русскоязычного сегмента интернета.`
+const exchangeRateAnalysisSuffix = `
+Предоставь смешной обзор длинной 250-350 символов на представленные курсы валют. 
+Используй эмоджи, черный юмор без границ, популярные смешные высказывания и мемы 
+из русскоязычного сегмента интернета.
+`
 
 type ExchangeRateFetcher interface {
 	FetchLatestRate(context.Context, domain.CurrencyPair) (*domain.ExchangeRate, error)
@@ -23,20 +26,20 @@ type ExchangeRateAssistant interface {
 	GetResponse(ctx context.Context, prompt string) (string, error)
 }
 
-type exchangeRates struct {
+type exchangeRate struct {
 	pairs     []domain.CurrencyPair
 	fetcher   ExchangeRateFetcher
 	formatter ExchangeRateFormatter
 	assistant ExchangeRateAssistant
 }
 
-func NewExchangeRates(
+func NewExchangeRate(
 	pairs []domain.CurrencyPair,
 	fetcher ExchangeRateFetcher,
 	formatter ExchangeRateFormatter,
 	assistant ExchangeRateAssistant,
-) *exchangeRates {
-	return &exchangeRates{
+) *exchangeRate {
+	return &exchangeRate{
 		pairs:     pairs,
 		fetcher:   fetcher,
 		formatter: formatter,
@@ -44,7 +47,7 @@ func NewExchangeRates(
 	}
 }
 
-func (e *exchangeRates) Generate(ctx context.Context) (string, error) {
+func (e *exchangeRate) Generate(ctx context.Context) (string, error) {
 	var sb strings.Builder
 	for _, pair := range e.pairs {
 		rate, err := e.fetcher.FetchLatestRate(ctx, pair)

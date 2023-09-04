@@ -8,9 +8,11 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
 
-const moonPhaseAnalysisSuffix = `Предоставь смешной обзор длинной 300-400 символов на представленные данные.
+const moonPhaseAnalysisSuffix = `
+Предоставь смешной обзор длинной 300-400 символов на представленные данные.
 Добавь как называют такую луну.
-Добавь познавательные и исторические факты.`
+Добавь познавательные и исторические факты.
+`
 
 type MoonPhaseFetcher interface {
 	FetchLatestPhase(context.Context) (*domain.MoonPhase, error)
@@ -24,35 +26,35 @@ type MoonPhaseAssistant interface {
 	GetResponse(ctx context.Context, prompt string) (string, error)
 }
 
-type moonPhases struct {
+type moonPhase struct {
 	fetcher   MoonPhaseFetcher
 	formatter MoonPhaseFormatter
 	assistant MoonPhaseAssistant
 }
 
-func NewMoonPhases(
+func NewMoonPhase(
 	fetcher MoonPhaseFetcher,
 	formatter MoonPhaseFormatter,
 	assistant MoonPhaseAssistant,
-) *moonPhases {
-	return &moonPhases{
+) *moonPhase {
+	return &moonPhase{
 		fetcher:   fetcher,
 		formatter: formatter,
 		assistant: assistant,
 	}
 }
 
-func (e *moonPhases) Generate(ctx context.Context) (string, error) {
+func (m *moonPhase) Generate(ctx context.Context) (string, error) {
 	var sb strings.Builder
-	phase, err := e.fetcher.FetchLatestPhase(ctx)
+	phase, err := m.fetcher.FetchLatestPhase(ctx)
 	if err != nil {
 		return "", fmt.Errorf("fetching latest moon phase: %v", err)
 	}
 
-	sb.WriteString(e.formatter.Format(*phase))
+	sb.WriteString(m.formatter.Format(*phase))
 	sb.WriteString("\n")
 
-	resp, err := e.assistant.GetResponse(ctx, sb.String()+moonPhaseAnalysisSuffix)
+	resp, err := m.assistant.GetResponse(ctx, sb.String()+moonPhaseAnalysisSuffix)
 	if err != nil {
 		return "", fmt.Errorf("generating analysis part: %v", err)
 	}

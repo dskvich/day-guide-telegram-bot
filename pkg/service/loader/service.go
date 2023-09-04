@@ -45,18 +45,18 @@ func NewService[T any, P any](
 	}, nil
 }
 
-func (s *service[T, P]) Name() string { return s.name }
+func (svc *service[T, P]) Name() string { return svc.name }
 
-func (s *service[T, P]) Run(ctx context.Context) error {
-	slog.Info(fmt.Sprintf("starting %s service", s.name), "interval", s.pollInterval.String())
-	defer slog.Info(fmt.Sprintf("stopped %s service", s.name))
+func (svc *service[T, P]) Run(ctx context.Context) error {
+	slog.Info(fmt.Sprintf("starting %s service", svc.name), "interval", svc.pollInterval.String())
+	defer slog.Info(fmt.Sprintf("stopped %s service", svc.name))
 
-	ticker := time.NewTicker(s.pollInterval)
+	ticker := time.NewTicker(svc.pollInterval)
 	defer ticker.Stop()
 
 	for {
-		if err := s.load(ctx); err != nil {
-			slog.Error(fmt.Sprintf("%s pass failed", s.name), logger.Err(err))
+		if err := svc.load(ctx); err != nil {
+			slog.Error(fmt.Sprintf("%s pass failed", svc.name), logger.Err(err))
 		}
 
 		select {
@@ -68,16 +68,16 @@ func (s *service[T, P]) Run(ctx context.Context) error {
 	}
 }
 
-func (s *service[T, P]) load(ctx context.Context) error {
-	slog.Info(fmt.Sprintf("starting %s pass", s.name))
+func (svc *service[T, P]) load(ctx context.Context) error {
+	slog.Info(fmt.Sprintf("starting %s pass", svc.name))
 	startAt := time.Now()
-	defer slog.Info(fmt.Sprintf("completed %s pass", s.name), "elapsed_time", time.Now().Sub(startAt).String())
+	defer slog.Info(fmt.Sprintf("completed %s pass", svc.name), "elapsed_time", time.Now().Sub(startAt).String())
 
-	switch fetcher := s.fetcher.(type) {
+	switch fetcher := svc.fetcher.(type) {
 	case Fetcher[T]:
-		return s.fetchAndSave(ctx, fetcher)
+		return svc.fetchAndSave(ctx, fetcher)
 	case FetcherOneParam[T, P]:
-		return s.fetchAndSaveOneParam(ctx, fetcher)
+		return svc.fetchAndSaveOneParam(ctx, fetcher)
 	default:
 		return fmt.Errorf("unsupported fetcher type")
 	}
@@ -85,25 +85,25 @@ func (s *service[T, P]) load(ctx context.Context) error {
 	return nil
 }
 
-func (s *service[T, P]) fetchAndSave(ctx context.Context, fetcher Fetcher[T]) error {
+func (svc *service[T, P]) fetchAndSave(ctx context.Context, fetcher Fetcher[T]) error {
 	data, err := fetcher.FetchData(ctx)
 	if err != nil {
 		return fmt.Errorf("fetching data: %w", err)
 	}
-	if err := s.saver.Save(ctx, data); err != nil {
+	if err := svc.saver.Save(ctx, data); err != nil {
 		return fmt.Errorf("saving data: %w", err)
 	}
 	return nil
 }
 
-func (s *service[T, P]) fetchAndSaveOneParam(ctx context.Context, fetcher FetcherOneParam[T, P]) error {
-	for _, param := range s.params {
+func (svc *service[T, P]) fetchAndSaveOneParam(ctx context.Context, fetcher FetcherOneParam[T, P]) error {
+	for _, param := range svc.params {
 		data, err := fetcher.FetchData(ctx, param)
 		if err != nil {
 			slog.Error("fetching data for param %v: %w", param, err)
 			continue
 		}
-		if err := s.saver.Save(ctx, data); err != nil {
+		if err := svc.saver.Save(ctx, data); err != nil {
 			slog.Error("saving data for param %v: %w", param, err)
 			continue
 		}

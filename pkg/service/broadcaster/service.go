@@ -43,23 +43,23 @@ func NewService(
 	}, nil
 }
 
-func (s *service) Name() string { return s.name }
+func (svc *service) Name() string { return svc.name }
 
-func (s *service) Run(ctx context.Context) error {
-	slog.Info(fmt.Sprintf("starting %s service", s.name), "cron", s.cron)
-	defer slog.Info(fmt.Sprintf("stopped %s service", s.name))
+func (svc *service) Run(ctx context.Context) error {
+	slog.Info(fmt.Sprintf("starting %s service", svc.name), "cron", svc.cron)
+	defer slog.Info(fmt.Sprintf("stopped %s service", svc.name))
 
 	c := cron.New()
 	defer c.Stop()
 
 	job := func() {
-		if err := s.broadcast(ctx); err != nil {
-			slog.Error(fmt.Sprintf("%s pass failed", s.name), logger.Err(err))
+		if err := svc.broadcast(ctx); err != nil {
+			slog.Error(fmt.Sprintf("%s pass failed", svc.name), logger.Err(err))
 		}
 	}
 
-	if _, err := c.AddFunc(s.cron, job); err != nil {
-		slog.Error("failed to add cron job", "name", s.name, logger.Err(err))
+	if _, err := c.AddFunc(svc.cron, job); err != nil {
+		slog.Error("failed to add cron job", "name", svc.name, logger.Err(err))
 		return err
 	}
 
@@ -69,27 +69,27 @@ func (s *service) Run(ctx context.Context) error {
 	return nil
 }
 
-func (s *service) broadcast(ctx context.Context) error {
-	slog.Info(fmt.Sprintf("starting %s pass", s.name))
+func (svc *service) broadcast(ctx context.Context) error {
+	slog.Info(fmt.Sprintf("starting %s pass", svc.name))
 	startAt := time.Now()
 
-	chatIDs, err := s.chatFetcher.GetIDs(ctx)
+	chatIDs, err := svc.chatFetcher.GetIDs(ctx)
 	if err != nil {
 		return fmt.Errorf("fetching chatIDs for broadcasting: %v", err)
 	}
 
-	report, err := s.reportGenerator.Generate(ctx)
+	report, err := svc.reportGenerator.Generate(ctx)
 	if err != nil {
 		return fmt.Errorf("generating report: %v", err)
 	}
 
 	for _, id := range chatIDs {
-		s.outCh <- &domain.TextMessage{
+		svc.outCh <- &domain.TextMessage{
 			ChatID:  id,
 			Content: report,
 		}
 	}
 
-	slog.Info(fmt.Sprintf("completed %s pass", s.name), "elapsed_time", time.Now().Sub(startAt).String())
+	slog.Info(fmt.Sprintf("completed %s pass", svc.name), "elapsed_time", time.Now().Sub(startAt).String())
 	return nil
 }

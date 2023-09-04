@@ -9,15 +9,15 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
 
-type exchangeRatesRepository struct {
+type exchangeRateRepository struct {
 	db *sql.DB
 }
 
-func NewExchangeRatesRepository(db *sql.DB) *exchangeRatesRepository {
-	return &exchangeRatesRepository{db: db}
+func NewExchangeRateRepository(db *sql.DB) *exchangeRateRepository {
+	return &exchangeRateRepository{db: db}
 }
 
-func (repo *exchangeRatesRepository) Save(ctx context.Context, e *domain.ExchangeRate) error {
+func (repo *exchangeRateRepository) Save(ctx context.Context, e *domain.ExchangeRate) error {
 	set := []string{"base", "quote", "rate"}
 	args := []any{e.Pair.Base, e.Pair.Quote, e.Rate}
 	placeholder := []string{"?", "?", "?"}
@@ -31,7 +31,7 @@ func (repo *exchangeRatesRepository) Save(ctx context.Context, e *domain.Exchang
 	return nil
 }
 
-func (repo *exchangeRatesRepository) FetchLatestRate(ctx context.Context, pair domain.CurrencyPair) (*domain.ExchangeRate, error) {
+func (repo *exchangeRateRepository) FetchLatestRate(ctx context.Context, pair domain.CurrencyPair) (*domain.ExchangeRate, error) {
 	q := `
 		select rate
 		from exchange_rates
