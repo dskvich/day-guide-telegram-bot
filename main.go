@@ -22,6 +22,7 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openexchangerates"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openweathermap"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/quotesrest"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/report"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/repository"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
@@ -216,21 +217,21 @@ func setupServices() (service.Group, error) {
 	} else {
 		return nil, err
 	}
-	/*
-		quotesRestClient := quotesrest.NewClient(cfg.QuotesRestAPIKey)
 
-		if svc, err = loader.NewService[*domain.Quote, struct{}](
-			"quote loader",
-			nil,
-			quotesRestClient,
-			quoteRepo,
-			8*time.Hour,
-		); err == nil {
-			svcGroup = append(svcGroup, svc)
-		} else {
-			return nil, err
-		}
-	*/
+	quotesRestClient := quotesrest.NewClient(cfg.QuotesRestAPIKey)
+
+	if svc, err = loader.NewService[*domain.Quote, struct{}](
+		"quote loader",
+		nil,
+		quotesRestClient,
+		quoteRepo,
+		8*time.Hour,
+	); err == nil {
+		svcGroup = append(svcGroup, svc)
+	} else {
+		return nil, err
+	}
+
 	if svc, err = broadcaster.NewService(
 		"quote broadcaster",
 		"5 5 * * *",
