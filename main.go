@@ -156,7 +156,7 @@ func setupServices() (service.Group, error) {
 
 	if svc, err = broadcaster.NewService(
 		"weather broadcaster",
-		"0 5,10,15 * * *",
+		"50 5 * * *",
 		chatRepository,
 		weatherReportGenerator,
 		messagesCh,
@@ -182,7 +182,7 @@ func setupServices() (service.Group, error) {
 
 	if svc, err = broadcaster.NewService(
 		"exchange rate broadcaster",
-		"10 5,10,15 * * *",
+		"10 6,15 * * *",
 		chatRepository,
 		exchangeRateReportGenerator,
 		messagesCh,
