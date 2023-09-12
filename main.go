@@ -173,7 +173,7 @@ func setupServices() (service.Group, error) {
 		pairs,
 		openExchangeRatesClient,
 		exchangeRateRepo,
-		time.Hour,
+		8*time.Hour,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
