@@ -51,10 +51,11 @@ func (q *quote) Generate(ctx context.Context) (string, error) {
 
 	quoteString := q.formatter.Format(*quote)
 
-	resp, err := q.assistant.GetResponse(ctx, quoteString+quoteAnalysisSuffix)
+	/*resp, err := q.assistant.GetResponse(ctx, quoteString+quoteAnalysisSuffix)
 	if err != nil {
 		return "", fmt.Errorf("generating analysis part: %v", err)
 	}
 
-	return resp, nil
+	return resp, nil*/
+	return quoteString, nil
 }

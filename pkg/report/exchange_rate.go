@@ -59,11 +59,12 @@ func (e *exchangeRate) Generate(ctx context.Context) (string, error) {
 		sb.WriteString("\n")
 	}
 
-	resp, err := e.assistant.GetResponse(ctx, sb.String()+exchangeRateAnalysisSuffix)
+	/*resp, err := e.assistant.GetResponse(ctx, sb.String()+exchangeRateAnalysisSuffix)
 	if err != nil {
 		return "", fmt.Errorf("generating analysis part: %v", err)
 	}
 
-	sb.WriteString(resp)
+	sb.WriteString(resp)*/
+
 	return sb.String(), nil
 }

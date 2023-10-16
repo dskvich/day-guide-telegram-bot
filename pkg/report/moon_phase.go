@@ -52,13 +52,14 @@ func (m *moonPhase) Generate(ctx context.Context) (string, error) {
 	}
 
 	sb.WriteString(m.formatter.Format(*phase))
-	sb.WriteString("\n")
+	/*sb.WriteString("\n")
 
 	resp, err := m.assistant.GetResponse(ctx, sb.String()+moonPhaseAnalysisSuffix)
 	if err != nil {
 		return "", fmt.Errorf("generating analysis part: %v", err)
 	}
 
-	sb.WriteString(resp)
+	sb.WriteString(resp)*/
+
 	return sb.String(), nil
 }

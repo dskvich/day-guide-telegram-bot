@@ -59,11 +59,12 @@ func (w *weather) Generate(ctx context.Context) (string, error) {
 		sb.WriteString("\n")
 	}
 
-	resp, err := w.assistant.GetResponse(ctx, sb.String()+weatherAnalysisQuerySuffix)
+	/*resp, err := w.assistant.GetResponse(ctx, sb.String()+weatherAnalysisQuerySuffix)
 	if err != nil {
 		return "", fmt.Errorf("generating analysis part: %v", err)
 	}
 
-	sb.WriteString(resp)
+	sb.WriteString(resp)*/
+
 	return sb.String(), nil
 }
