@@ -19,17 +19,24 @@ type Saver interface {
 
 type register struct {
 	saver Saver
+	outCh chan<- domain.Message
 }
 
-func NewRegister(saver Saver) *register {
-	return &register{saver: saver}
+func NewRegister(
+	saver Saver,
+	outCh chan<- domain.Message,
+) *register {
+	return &register{
+		saver: saver,
+		outCh: outCh,
+	}
 }
 
 func (r *register) CanHandle(update *tgbotapi.Update) bool {
 	return update.Message != nil && strings.HasPrefix(update.Message.Text, "/register")
 }
 
-func (r *register) Handle(update *tgbotapi.Update) domain.Message {
+func (r *register) Handle(update *tgbotapi.Update) {
 	msg := "Registration completed"
 
 	chat := &domain.Chat{
@@ -46,7 +53,7 @@ func (r *register) Handle(update *tgbotapi.Update) domain.Message {
 		}
 	}
 
-	return &domain.TextMessage{
+	r.outCh <- &domain.TextMessage{
 		ChatID:           update.Message.Chat.ID,
 		ReplyToMessageID: update.Message.MessageID,
 		Content:          msg,

@@ -28,6 +28,7 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/broadcaster"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/loader"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/plotbroadcaster"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/telegram"
 	telegrambot "github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram"
 )
@@ -113,7 +114,9 @@ func setupServices() (service.Group, error) {
 		{domain.USD, domain.TRY},
 	}
 	exchangeRateRepo := repository.NewExchangeRateRepository(db)
-	exchangeRateReportGenerator := report.NewExchangeRate(pairs, exchangeRateRepo, &formatter.ExchangeRate{}, gptClient)
+	exchangeRateFormatter := formatter.ExchangeRate{}
+	//exchangeRateReportGenerator := report.NewExchangeRate(pairs, exchangeRateRepo, &exchangeRateFormatter, gptClient)
+	exchangeRatePlotReportGenerator := report.NewExchangeRatePlot(exchangeRateRepo, &exchangeRateFormatter)
 
 	moonPhaseRepo := repository.NewMoonPhaseRepository(db)
 	moonPhaseReportGenerator := report.NewMoonPhase(moonPhaseRepo, &formatter.MoonPhase{}, gptClient)
@@ -122,17 +125,18 @@ func setupServices() (service.Group, error) {
 	quoteReportGenerator := report.NewQuote(quoteRepo, &formatter.Quote{}, gptClient)
 
 	chatRepository := repository.NewChatRepository(db)
-	defaultHandler := handler.NewRegister(chatRepository)
+
+	messagesCh := make(chan domain.Message)
+	defaultHandler := handler.NewRegister(chatRepository, messagesCh)
 	handlers := []command.Handler{
-		handler.NewRegister(chatRepository),
-		handler.NewWeather(weatherReportGenerator),
-		handler.NewExchangeRate(exchangeRateReportGenerator),
-		handler.NewMoonPhase(moonPhaseReportGenerator),
-		handler.NewQuote(quoteReportGenerator),
+		handler.NewRegister(chatRepository, messagesCh),
+		handler.NewWeather(weatherReportGenerator, messagesCh),
+		handler.NewExchangeRate(exchangeRatePlotReportGenerator, pairs, messagesCh),
+		handler.NewMoonPhase(moonPhaseReportGenerator, messagesCh),
+		handler.NewQuote(quoteReportGenerator, messagesCh),
 	}
 
 	dispatcher := command.NewDispatcher(handlers, defaultHandler)
-	messagesCh := make(chan domain.Message)
 
 	if svc, err = telegram.NewService(bot, authenticator, dispatcher, messagesCh); err == nil {
 		svcGroup = append(svcGroup, svc)
@@ -180,12 +184,13 @@ func setupServices() (service.Group, error) {
 		return nil, err
 	}
 
-	if svc, err = broadcaster.NewService(
+	if svc, err = plotbroadcaster.NewService(
 		"exchange rate broadcaster",
 		"10 6,15 * * *",
 		chatRepository,
-		exchangeRateReportGenerator,
+		exchangeRatePlotReportGenerator,
 		messagesCh,
+		pairs,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {

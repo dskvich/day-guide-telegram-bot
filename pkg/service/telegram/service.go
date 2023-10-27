@@ -22,7 +22,7 @@ type Bot interface {
 }
 
 type CommandDispatcher interface {
-	Dispatch(update tgbotapi.Update) domain.Message
+	Dispatch(update tgbotapi.Update)
 }
 
 type service struct {
@@ -79,9 +79,7 @@ func (svc *service) handleUpdate(update tgbotapi.Update) {
 			return
 		}
 
-		if message := svc.commandDispatcher.Dispatch(update); message != nil {
-			svc.messages <- message
-		}
+		svc.commandDispatcher.Dispatch(update)
 	}
 }
 

@@ -16,22 +16,30 @@ type QuoteReportGenerator interface {
 
 type quote struct {
 	reportGenerator QuoteReportGenerator
+	outCh           chan<- domain.Message
 }
 
-func NewQuote(reportGenerator WeatherReportGenerator) *quote {
-	return &quote{reportGenerator: reportGenerator}
+func NewQuote(
+	reportGenerator WeatherReportGenerator,
+	outCh chan<- domain.Message,
+) *quote {
+	return &quote{
+		reportGenerator: reportGenerator,
+		outCh:           outCh,
+	}
 }
 
 func (q *quote) CanHandle(update *tgbotapi.Update) bool {
 	return update.Message != nil && strings.HasPrefix(update.Message.Text, "/quote")
 }
 
-func (q *quote) Handle(update *tgbotapi.Update) domain.Message {
+func (q *quote) Handle(update *tgbotapi.Update) {
 	response, err := q.reportGenerator.Generate(context.TODO())
 	if err != nil {
 		response = fmt.Sprintf("Failed to generate quote report: %v", err)
 	}
-	return &domain.TextMessage{
+
+	q.outCh <- &domain.TextMessage{
 		ChatID:           update.Message.Chat.ID,
 		ReplyToMessageID: update.Message.MessageID,
 		Content:          response,

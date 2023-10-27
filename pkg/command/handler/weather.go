@@ -16,22 +16,30 @@ type WeatherReportGenerator interface {
 
 type weather struct {
 	reportGenerator WeatherReportGenerator
+	outCh           chan<- domain.Message
 }
 
-func NewWeather(reportGenerator WeatherReportGenerator) *weather {
-	return &weather{reportGenerator: reportGenerator}
+func NewWeather(
+	reportGenerator WeatherReportGenerator,
+	outCh chan<- domain.Message,
+) *weather {
+	return &weather{
+		reportGenerator: reportGenerator,
+		outCh:           outCh,
+	}
 }
 
 func (w *weather) CanHandle(update *tgbotapi.Update) bool {
 	return update.Message != nil && strings.HasPrefix(update.Message.Text, "/weather")
 }
 
-func (w *weather) Handle(update *tgbotapi.Update) domain.Message {
+func (w *weather) Handle(update *tgbotapi.Update) {
 	response, err := w.reportGenerator.Generate(context.TODO())
 	if err != nil {
 		response = fmt.Sprintf("Failed to generate weather report: %v", err)
 	}
-	return &domain.TextMessage{
+
+	w.outCh <- &domain.TextMessage{
 		ChatID:           update.Message.Chat.ID,
 		ReplyToMessageID: update.Message.MessageID,
 		Content:          response,

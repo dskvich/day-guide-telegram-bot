@@ -21,4 +21,5 @@
 go.work
 .env
 day-guide.db*
+day-guide_tmp*
 .idea/

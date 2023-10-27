@@ -53,6 +53,10 @@ func (c *client) FetchData(ctx context.Context, location domain.Location) (*doma
 		return nil, fmt.Errorf("decoding response body: %v", err)
 	}
 
+	if res.Cod != 200 {
+		return nil, fmt.Errorf("error status: %d, message: %s", res.Cod, res.Message)
+	}
+
 	return &domain.Weather{
 		Location:       res.Name,
 		Temp:           res.Main.Temp,
@@ -134,4 +138,5 @@ type weatherAPIResponse struct {
 	Id       int    `json:"id"`
 	Name     string `json:"name"`
 	Cod      int    `json:"cod"`
+	Message  string `json:"message"`
 }

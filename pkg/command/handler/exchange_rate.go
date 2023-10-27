@@ -11,29 +11,48 @@ import (
 )
 
 type ExchangeRateReportGenerator interface {
-	Generate(ctx context.Context) (string, error)
+	Generate(ctx context.Context, pair domain.CurrencyPair) ([]byte, string, error)
 }
 
 type exchangeRate struct {
-	reportGenerator WeatherReportGenerator
+	reportGenerator ExchangeRateReportGenerator
+	pairs           []domain.CurrencyPair
+	outCh           chan<- domain.Message
 }
 
-func NewExchangeRate(reportGenerator WeatherReportGenerator) *exchangeRate {
-	return &exchangeRate{reportGenerator: reportGenerator}
+func NewExchangeRate(
+	reportGenerator ExchangeRateReportGenerator,
+	pairs []domain.CurrencyPair,
+	outCh chan<- domain.Message,
+) *exchangeRate {
+	return &exchangeRate{
+		reportGenerator: reportGenerator,
+		pairs:           pairs,
+		outCh:           outCh,
+	}
 }
 
 func (e *exchangeRate) CanHandle(update *tgbotapi.Update) bool {
 	return update.Message != nil && strings.HasPrefix(update.Message.Text, "/rate")
 }
 
-func (e *exchangeRate) Handle(update *tgbotapi.Update) domain.Message {
-	response, err := e.reportGenerator.Generate(context.TODO())
-	if err != nil {
-		response = fmt.Sprintf("Failed to generate exchange rate report: %v", err)
-	}
-	return &domain.TextMessage{
-		ChatID:           update.Message.Chat.ID,
-		ReplyToMessageID: update.Message.MessageID,
-		Content:          response,
+func (e *exchangeRate) Handle(update *tgbotapi.Update) {
+	for _, pair := range e.pairs {
+		imageBytes, caption, err := e.reportGenerator.Generate(context.TODO(), pair)
+		if err != nil {
+			e.outCh <- &domain.TextMessage{
+				ChatID:           update.Message.Chat.ID,
+				ReplyToMessageID: update.Message.MessageID,
+				Content:          fmt.Sprintf("``` Failed to generate exchange rate report image for pair %s: %v ```", pair, err),
+			}
+			continue
+		}
+
+		e.outCh <- &domain.ImageMessage{
+			ChatID:           update.Message.Chat.ID,
+			ReplyToMessageID: update.Message.MessageID,
+			Content:          imageBytes,
+			Caption:          caption,
+		}
 	}
 }

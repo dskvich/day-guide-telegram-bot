@@ -1,6 +1,9 @@
 package domain
 
+import "time"
+
 type ExchangeRate struct {
-	Pair CurrencyPair
-	Rate float64
+	Timestamp time.Time
+	Pair      CurrencyPair
+	Rate      float64
 }
