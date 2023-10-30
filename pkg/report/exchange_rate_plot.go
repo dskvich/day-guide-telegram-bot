@@ -16,20 +16,21 @@ import (
 type ExchangeRateBulkFetcher interface {
 	FetchHistoryRate(context.Context, domain.CurrencyPair, int) ([]domain.ExchangeRate, error)
 	FetchLatestRate(context.Context, domain.CurrencyPair) (*domain.ExchangeRate, error)
+	FetchAverageRateForDay(context.Context, domain.CurrencyPair, time.Time) (*domain.ExchangeRate, error)
 }
 
 type ExchangeRatePlotFormatter interface {
-	Format(weather domain.ExchangeRate) string
+	Format(weather domain.ExchangeRateInfo) string
 }
 
 type exchangeRatePlot struct {
 	fetcher   ExchangeRateBulkFetcher
-	formatter ExchangeRateFormatter
+	formatter ExchangeRatePlotFormatter
 }
 
 func NewExchangeRatePlot(
 	fetcher ExchangeRateBulkFetcher,
-	formatter ExchangeRateFormatter,
+	formatter ExchangeRatePlotFormatter,
 ) *exchangeRatePlot {
 	return &exchangeRatePlot{
 		fetcher:   fetcher,
@@ -73,12 +74,22 @@ func (e *exchangeRatePlot) Generate(ctx context.Context, pair domain.CurrencyPai
 
 	// Create caption
 	var sb strings.Builder
-	rate, err := e.fetcher.FetchLatestRate(ctx, pair)
+	latestRate, err := e.fetcher.FetchLatestRate(ctx, pair)
 	if err != nil {
 		return nil, "", fmt.Errorf("fetching latest exchange rate for pair %s: %v", pair, err)
 	}
 
-	sb.WriteString(e.formatter.Format(*rate))
+	yesterdayRate, err := e.fetcher.FetchAverageRateForDay(ctx, pair, time.Now().AddDate(0, 0, -1))
+	if err != nil {
+		return nil, "", fmt.Errorf("fetching average rate for the previous day for pair %s: %v", pair, err)
+	}
+
+	exchangeRateInfo := domain.ExchangeRateInfo{
+		CurrentRate:     latestRate,
+		PreviousDayRate: yesterdayRate,
+	}
+
+	sb.WriteString(e.formatter.Format(exchangeRateInfo))
 	sb.WriteString("\n")
 
 	return buffer.Bytes(), sb.String(), err

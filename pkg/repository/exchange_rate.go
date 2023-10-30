@@ -54,6 +54,26 @@ func (repo *exchangeRateRepository) FetchLatestRate(ctx context.Context, pair do
 	return &e, nil
 }
 
+func (repo *exchangeRateRepository) FetchAverageRateForDay(ctx context.Context, pair domain.CurrencyPair, date time.Time) (*domain.ExchangeRate, error) {
+	q := `
+		select coalesce(avg(rate),0)
+		from exchange_rates
+		where base = ?
+		and quote = ?
+		and date(created_at) = ?
+	`
+
+	e := domain.ExchangeRate{Pair: pair}
+	formattedDate := date.Format("2006-01-02") // Format to YYYY-MM-DD
+	if err := repo.db.QueryRowContext(ctx, q, pair.Base, pair.Quote, formattedDate).Scan(
+		&e.Rate,
+	); err != nil {
+		return nil, fmt.Errorf("scanning row: %v", err)
+	}
+
+	return &e, nil
+}
+
 func (repo *exchangeRateRepository) FetchHistoryRate(ctx context.Context, pair domain.CurrencyPair, days int) ([]domain.ExchangeRate, error) {
 	q := `
 		WITH LastRateToday AS (
