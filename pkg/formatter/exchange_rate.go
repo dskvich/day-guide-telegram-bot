@@ -12,12 +12,14 @@ type ExchangeRate struct{}
 func (_ *ExchangeRate) Format(e domain.ExchangeRateInfo) string {
 	var sb strings.Builder
 
-	arrowIcon := ""
 	percentageChange := e.PercentageChange()
-	if percentageChange < 0 {
-		arrowIcon = "🔽"
-	} else {
+	arrowIcon := ""
+
+	switch {
+	case percentageChange > 0:
 		arrowIcon = "🔼"
+	case percentageChange < 0:
+		arrowIcon = "🔽"
 	}
 
 	if arrowIcon != "" {

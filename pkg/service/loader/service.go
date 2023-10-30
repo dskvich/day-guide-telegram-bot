@@ -90,6 +90,9 @@ func (svc *service[T, P]) fetchAndSave(ctx context.Context, fetcher Fetcher[T]) 
 	if err != nil {
 		return fmt.Errorf("fetching data: %w", err)
 	}
+
+	slog.Debug("fetching data", "service", svc.name, "data", data)
+
 	if err := svc.saver.Save(ctx, data); err != nil {
 		return fmt.Errorf("saving data: %w", err)
 	}
@@ -100,11 +103,14 @@ func (svc *service[T, P]) fetchAndSaveOneParam(ctx context.Context, fetcher Fetc
 	for _, param := range svc.params {
 		data, err := fetcher.FetchData(ctx, param)
 		if err != nil {
-			slog.Error("fetching data for param %v: %w", param, err)
+			slog.Error("fetching data", "service", svc.name, "param", param, logger.Err(err))
 			continue
 		}
+
+		slog.Debug("fetching data", "service", svc.name, "param", param, "data", data)
+
 		if err := svc.saver.Save(ctx, data); err != nil {
-			slog.Error("saving data for param %v: %w", param, err)
+			slog.Error("saving data", "service", svc.name, "param", param, logger.Err(err))
 			continue
 		}
 	}

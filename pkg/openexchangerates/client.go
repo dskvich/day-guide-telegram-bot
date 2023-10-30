@@ -53,6 +53,10 @@ func (c *client) FetchData(ctx context.Context, pair domain.CurrencyPair) (*doma
 		return nil, fmt.Errorf("decoding response body: %v", err)
 	}
 
+	if res.Error {
+		return nil, fmt.Errorf("error status: %d, message: %s", res.Status, res.Description)
+	}
+
 	rate, err := extractRateForCurrency(res, pair.Quote)
 	if err != nil {
 		return nil, fmt.Errorf("extracting rate for currency %s: %v", pair.Quote, err)
@@ -251,4 +255,8 @@ type usdExchangeRateAPIResponse struct {
 		ZMW float64 `json:"ZMW"`
 		ZWL int     `json:"ZWL"`
 	} `json:"rates"`
+	Error       bool   `json:"error"`
+	Status      int    `json:"status"`
+	Message     string `json:"message"`
+	Description string `json:"description"`
 }
