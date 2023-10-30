@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"strings"
-	"time"
 
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
@@ -24,15 +23,9 @@ func (_ *Weather) Format(w domain.Weather) string {
 }
 
 func weatherEmoji(weatherMain string) string {
-	now := time.Now().Hour()
-
 	switch weatherMain {
 	case "Clear":
-		if 6 <= now && now < 18 {
-			return "☀️"
-		} else {
-			return "🌙"
-		}
+		return "☀️"
 	case "Rain", "Drizzle":
 		return "🌧️"
 	case "Clouds":
