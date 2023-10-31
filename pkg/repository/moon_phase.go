@@ -22,13 +22,11 @@ func (repo *moonPhaseRepository) Save(ctx context.Context, m *domain.MoonPhase) 
 	args := []any{m.Age, strings.Join(m.Names, ","), m.Phase, m.DistanceToEarth, m.IlluminationPrc, m.DistanceToSun}
 
 	placeholders := make([]string, len(columns))
-	for i := range placeholders {
-		placeholders[i] = "?"
+	for i := range columns {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
 	}
 
-	q := fmt.Sprintf("INSERT INTO moon_phases (%s) VALUES (%s)",
-		strings.Join(columns, ", "),
-		strings.Join(placeholders, ", "))
+	q := `INSERT INTO moon_phases (` + strings.Join(columns, ", ") + `) values (` + strings.Join(placeholders, ",") + `)`
 
 	if _, err := repo.db.ExecContext(ctx, q, args...); err != nil {
 		return fmt.Errorf("executing query: %v", err)

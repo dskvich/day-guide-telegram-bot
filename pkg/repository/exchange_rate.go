@@ -21,11 +21,15 @@ func NewExchangeRateRepository(db *sql.DB) *exchangeRateRepository {
 }
 
 func (repo *exchangeRateRepository) Save(ctx context.Context, e *domain.ExchangeRate) error {
-	set := []string{"base", "quote", "rate"}
+	columns := []string{"base", "quote", "rate"}
 	args := []any{e.Pair.Base, e.Pair.Quote, e.Rate}
-	placeholder := []string{"?", "?", "?"}
 
-	q := `insert into exchange_rates (` + strings.Join(set, ", ") + `) values (` + strings.Join(placeholder, ",") + `)`
+	placeholders := make([]string, len(columns))
+	for i := range columns {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+	}
+
+	q := `insert into exchange_rates (` + strings.Join(columns, ", ") + `) values (` + strings.Join(placeholders, ",") + `)`
 
 	if _, err := repo.db.ExecContext(ctx, q, args...); err != nil {
 		return fmt.Errorf("executing query: %v", err)
@@ -38,8 +42,8 @@ func (repo *exchangeRateRepository) FetchLatestRate(ctx context.Context, pair do
 	q := `
 		select rate
 		from exchange_rates
-		where base = ?
-		and quote = ?
+		where base = $1
+		and quote = $2
 		order by created_at desc
 		limit 1;
 	`
@@ -58,9 +62,9 @@ func (repo *exchangeRateRepository) FetchAverageRateForDay(ctx context.Context, 
 	q := `
 		select coalesce(avg(rate),0)
 		from exchange_rates
-		where base = ?
-		and quote = ?
-		and date(created_at) = ?
+		where base = $1
+		and quote = $2
+		and date_trunc('day', created_at) = $3
 	`
 
 	e := domain.ExchangeRate{Pair: pair}
@@ -77,30 +81,31 @@ func (repo *exchangeRateRepository) FetchAverageRateForDay(ctx context.Context, 
 func (repo *exchangeRateRepository) FetchHistoryRate(ctx context.Context, pair domain.CurrencyPair, days int) ([]domain.ExchangeRate, error) {
 	q := `
 		WITH LastRateToday AS (
-			SELECT strftime('%Y-%m-%d', created_at) AS date, 
-			       rate
+			SELECT date_trunc('day', created_at) AS date,
+				   rate
 			FROM exchange_rates
-			WHERE base = ? 
-			  AND quote = ?
-			  AND strftime('%Y-%m-%d', created_at) = strftime('%Y-%m-%d', 'now')
+			WHERE base = $1
+			  AND quote = $2
+			  AND date_trunc('day', created_at) = date_trunc('day', current_timestamp)
 			ORDER BY created_at DESC
 			LIMIT 1
 		),
-		 RecentAvgRates AS (
-			 SELECT strftime('%Y-%m-%d', created_at) AS date, 
-			        avg(rate) AS rate
-			 FROM exchange_rates
-			 WHERE base = ?
-			   AND quote = ?
-			   AND strftime('%Y-%m-%d', created_at) != strftime('%Y-%m-%d', 'now')
-			 GROUP BY strftime('%Y-%m-%d', created_at)
-			 ORDER BY date DESC
-			 LIMIT ?
-		 )
+		RecentAvgRates AS (
+			SELECT date_trunc('day', created_at) AS date,
+				   avg(rate) AS rate
+			FROM exchange_rates
+			WHERE base = $3
+			  AND quote = $4
+			  AND date_trunc('day', created_at) != date_trunc('day', current_timestamp)
+			GROUP BY date_trunc('day', created_at)
+			ORDER BY date DESC
+			LIMIT $5
+		)
 		SELECT * FROM RecentAvgRates
 		UNION ALL
 		SELECT * FROM LastRateToday
-		ORDER BY date DESC
+		ORDER BY date DESC;
+
 	`
 
 	rows, err := repo.db.QueryContext(ctx, q, pair.Base, pair.Quote, pair.Base, pair.Quote, days)
@@ -124,8 +129,7 @@ func (repo *exchangeRateRepository) FetchHistoryRate(ctx context.Context, pair d
 			return nil, fmt.Errorf("scanning rows: %v", err)
 		}
 
-		layout := "2006-01-02" // replace with the actual layout of your timestamp
-		timestamp, err := time.Parse(layout, tsStr)
+		timestamp, err := time.Parse(time.RFC3339, tsStr)
 		if err != nil {
 			return nil, fmt.Errorf("parsing timestamp: %v", err)
 		}

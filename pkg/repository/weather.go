@@ -18,11 +18,15 @@ func NewWeatherRepository(db *sql.DB) *weatherRepository {
 }
 
 func (repo *weatherRepository) Save(ctx context.Context, w *domain.Weather) error {
-	set := []string{"location", "temp", "temp_feel", "pressure", "humidity", "weather", "weather_verbose", "wind_speed", "wind_direction"}
+	columns := []string{"location", "temp", "temp_feel", "pressure", "humidity", "weather", "weather_verbose", "wind_speed", "wind_direction"}
 	args := []any{w.Location, w.Temp, w.TempFeel, w.Pressure, w.Humidity, w.Weather, w.WeatherVerbose, w.WindSpeed, w.WindDirection}
-	placeholder := []string{"?", "?", "?", "?", "?", "?", "?", "?", "?"}
 
-	q := `insert into weather (` + strings.Join(set, ", ") + `) values (` + strings.Join(placeholder, ",") + `)`
+	placeholders := make([]string, len(columns))
+	for i := range columns {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+	}
+
+	q := `INSERT INTO weather (` + strings.Join(columns, ", ") + `) values (` + strings.Join(placeholders, ",") + `)`
 
 	if _, err := repo.db.ExecContext(ctx, q, args...); err != nil {
 		return fmt.Errorf("executing query: %v", err)
@@ -44,7 +48,7 @@ func (repo *weatherRepository) FetchLatestByLocation(ctx context.Context, locati
 			wind_speed,
 			wind_direction
 		from weather
-		where location = ?
+		where location = $1
 		order by created_at desc
 		limit 1;
 	`

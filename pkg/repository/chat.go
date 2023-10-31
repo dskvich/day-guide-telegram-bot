@@ -23,7 +23,7 @@ func NewChatRepository(db *sql.DB) *chatRepository {
 }
 
 func (repo *chatRepository) Save(ctx context.Context, chat *domain.Chat) error {
-	q := `insert into chats(id, registered_by) values(?, ?)`
+	q := `insert into chats(id, registered_by) values($1, $2)`
 
 	if _, err := repo.db.ExecContext(ctx, q, chat.ID, chat.RegisteredBy); err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {

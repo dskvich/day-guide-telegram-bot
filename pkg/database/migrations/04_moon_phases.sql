@@ -1,6 +1,6 @@
 -- +migrate Up
 CREATE TABLE moon_phases (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     age INTEGER,
     names TEXT,

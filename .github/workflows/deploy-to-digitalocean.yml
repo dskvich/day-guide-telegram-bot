@@ -59,7 +59,7 @@ jobs:
             -e OPEN_WEATHER_MAP_API_KEY="${{ secrets.OPEN_WEATHER_MAP_API_KEY }}" \
             -e OPEN_EXCHANGE_RATES_APP_ID="${{ secrets.OPEN_EXCHANGE_RATES_APP_ID }}" \
             -e QUOTES_REST_API_KEY="${{ secrets.QUOTES_REST_API_KEY }}" \
-            -v /app/day-guide.db:/app/day-guide.db \
+            -e DATABASE_URL=${{ vars.DATABASE_URL }} \
             --network my-network \
             $CONTAINER_REGISTRY/$IMAGE_NAME:$GITHUB_SHA
             

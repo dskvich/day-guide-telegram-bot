@@ -40,6 +40,8 @@ type Config struct {
 	ChatGPTTelegramBotURL     string  `env:"CHAT_GPT_TELEGRAM_BOT_URL" envDefault:"http://chatgpt-telegram-bot:8080"`
 	TelegramAuthorizedUserIDs []int64 `env:"TELEGRAM_AUTHORIZED_USER_IDS" envSeparator:" "`
 	QuotesRestAPIKey          string  `env:"QUOTES_REST_API_KEY,required"`
+	PgURL                     string  `env:"DATABASE_URL"`
+	PgHost                    string  `env:"DB_HOST" envDefault:"localhost:65432"`
 }
 
 func main() {
@@ -85,7 +87,7 @@ func setupServices() (service.Group, error) {
 	var svc service.Service
 	var svcGroup service.Group
 
-	db, err := database.NewSQLite()
+	db, err := database.NewPostgres(cfg.PgURL, cfg.PgHost)
 	if err != nil {
 		return nil, fmt.Errorf("creating db: %v", err)
 	}

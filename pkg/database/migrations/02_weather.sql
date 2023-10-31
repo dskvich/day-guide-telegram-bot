@@ -1,6 +1,6 @@
 -- +migrate Up
 CREATE TABLE weather (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     location TEXT,
     temp FLOAT,
