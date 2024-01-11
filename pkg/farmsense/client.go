@@ -57,7 +57,7 @@ func (c *client) FetchData(ctx context.Context) (*domain.MoonPhase, error) {
 	}
 
 	return &domain.MoonPhase{
-		Age:             res[0].Index,
+		Age:             res[0].Index + 1, // the moon age is measured in days, starting from 1, so it's necessary to add 1 to the index
 		Names:           res[0].Moon,
 		Phase:           res[0].Phase,
 		DistanceToEarth: res[0].Distance,

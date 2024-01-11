@@ -24,33 +24,36 @@ var phaseEmoji = map[string]string{
 func (_ *MoonPhase) Format(m domain.MoonPhase) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("%s %s, *%d-й* лунный день\n", phaseEmoji[m.Phase], translateMoonPhase(m.Phase), m.Age))
-	sb.WriteString(fmt.Sprintf("💡 Видимость: *%d%%*\n", m.IlluminationPrc))
+	sb.WriteString(fmt.Sprintf("%s %s, *%d-й* лунный день\n", phaseEmoji[m.Phase], moonPhaseDescription(m.IlluminationPrc), m.Age))
 	sb.WriteString(fmt.Sprintf("🌍 Расстояние до Земли: *%d км*\n", int(m.DistanceToEarth)))
 	sb.WriteString(fmt.Sprintf("🌞 Расстояние до Солнца: *%d км*\n", int(m.DistanceToSun)))
 
 	return sb.String()
 }
 
-func translateMoonPhase(phase string) string {
-	switch phase {
-	case "First Quarter":
-		return "Первая четверть"
-	case "Full":
-		return "Полнолуние"
-	case "Last Quarter":
-		return "Последняя четверть"
-	case "New":
+func moonPhaseDescription(visibility int) string {
+	switch {
+	case visibility == 0:
 		return "Новолуние"
-	case "New Crescent":
-		return "Молодая луна"
-	case "Old Crescent":
-		return "Старая луна"
-	case "Waning Gibbous":
-		return "Убывающая луна"
-	case "Waxing Gibbous":
-		return "Растущая луна"
+	case visibility > 0 && visibility < 25:
+		return "Растущий серп"
+	case visibility >= 25 && visibility < 50:
+		return "Первая четверть"
+	case visibility == 50:
+		return "Полумесяц"
+	case visibility > 50 && visibility < 75:
+		return "Растущая гиббозная Луна"
+	case visibility >= 75 && visibility < 100:
+		return "Полнолуние"
+	case visibility > 75 && visibility < 100:
+		return "Убывающая гиббозная Луна"
+	case visibility >= 50 && visibility < 75:
+		return "Последняя четверть"
+	case visibility > 25 && visibility < 50:
+		return "Убывающий полумесяц"
+	case visibility > 0 && visibility < 25:
+		return "Убывающий серп"
 	default:
-		return ""
+		return "Неизвестная фаза Луны"
 	}
 }
