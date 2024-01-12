@@ -85,6 +85,6 @@ func (svc *service) handleUpdate(update tgbotapi.Update) {
 
 func (svc *service) handleMessage(message domain.Message) {
 	if err := svc.bot.Send(message); err != nil {
-		slog.Error("sending message", logger.Err(err))
+		slog.Error("sending message", "message", message, logger.Err(err))
 	}
 }
