@@ -20,7 +20,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to the Container registry
+      - name: Log in to the Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.CONTAINER_REGISTRY }}
@@ -44,10 +44,11 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: IMAGE_NAME,CONTAINER_REGISTRY,GITHUB_SHA
+          envs: IMAGE_NAME,CONTAINER_REGISTRY,GITHUB_SHA,GITHUB_TOKEN
           script: |
-            echo "Logging into Digital Ocean Registry..."
-            docker login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}  ${{ env.CONTAINER_REGISTRY }}
+            echo "Logging into the Container Registry..."
+            echo $GITHUB_TOKEN | docker login ${{ env.CONTAINER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+            
             docker pull $CONTAINER_REGISTRY/$IMAGE_NAME:$GITHUB_SHA || { echo "Failed to pull Docker image."; exit 1; }
 
             docker stop $IMAGE_NAME || echo "No existing container to stop."
