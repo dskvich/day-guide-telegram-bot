@@ -52,13 +52,13 @@ jobs:
             echo "Pulling image: $FILL_IMAGE_NAME"
             docker pull $FILL_IMAGE_NAME || { echo "Failed to pull Docker image."; exit 1; }
             
-            docker stop $IMAGE_NAME || echo "No existing container to stop."
-            docker rm $IMAGE_NAME || echo "No existing container to remove."
+            docker stop ${{ env.IMAGE_NAME }} || echo "No existing container to stop."
+            docker rm ${{ env.IMAGE_NAME }} || echo "No existing container to remove."
             docker network create my-network || echo "Network already exists."
 
             echo "Starting a new container..."
             docker run --detach \
-              --name $IMAGE_NAME \
+              --name ${{ env.IMAGE_NAME }} \
               --env TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
               --env TELEGRAM_AUTHORIZED_USER_IDS="${{ vars.TELEGRAM_AUTHORIZED_USER_IDS }}" \
               --env OPEN_WEATHER_MAP_API_KEY="${{ secrets.OPEN_WEATHER_MAP_API_KEY }}" \
@@ -71,8 +71,8 @@ jobs:
             echo "Waiting for the container to start"
             RETRY=5
             while [ $RETRY -gt 0 ]; do
-              if docker ps | grep -q $IMAGE_NAME; then
-                echo "Container $IMAGE_NAME started successfully."
+              if docker ps | grep -q ${{ env.IMAGE_NAME }}; then
+                echo "Container ${{ env.IMAGE_NAME }} started successfully."
                 break
               else
                 ((RETRY--))
@@ -83,7 +83,7 @@ jobs:
 
             if [ $RETRY -eq 0 ]
             then
-              echo "Container $IMAGE_NAME failed to start."
+              echo "Container ${{ env.IMAGE_NAME }} failed to start."
               exit 1
             fi
             
