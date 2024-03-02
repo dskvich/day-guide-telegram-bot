@@ -44,10 +44,10 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: IMAGE_NAME,CONTAINER_REGISTRY,GITHUB_SHA,GITHUB_TOKEN
+          envs: IMAGE_NAME,CONTAINER_REGISTRY,GITHUB_SHA
           script: |
             echo "Logging into the Container Registry..."
-            echo $GITHUB_TOKEN | docker login ${{ env.CONTAINER_REGISTRY }} -u ${{ github.actor }} --password-stdin
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.CONTAINER_REGISTRY }} -u ${{ github.actor }} --password-stdin
             
             docker pull $CONTAINER_REGISTRY/$IMAGE_NAME:$GITHUB_SHA || { echo "Failed to pull Docker image."; exit 1; }
 
