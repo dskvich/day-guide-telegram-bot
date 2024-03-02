@@ -51,22 +51,22 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            docker pull $CONTAINER_REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME:$IMAGE_TAG
+            docker pull $CONTAINER_REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME:$IMAGE_TAG || { echo "Failed to pull Docker image."; exit 1; }
             docker stop $IMAGE_NAME || echo "No existing container to stop."
             docker rm $IMAGE_NAME || echo "No existing container to remove."
             docker network create my-network || echo "Network already exists."
 
             echo "Starting new Docker container..."
             docker run -d \
-              --name $IMAGE_NAME \
-              -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
-              -e TELEGRAM_AUTHORIZED_USER_IDS="${{ vars.TELEGRAM_AUTHORIZED_USER_IDS }}" \
-              -e OPEN_WEATHER_MAP_API_KEY="${{ secrets.OPEN_WEATHER_MAP_API_KEY }}" \
-              -e OPEN_EXCHANGE_RATES_APP_ID="${{ secrets.OPEN_EXCHANGE_RATES_APP_ID }}" \
-              -e QUOTES_REST_API_KEY="${{ secrets.QUOTES_REST_API_KEY }}" \
-              -e DATABASE_URL=${{ vars.DATABASE_URL }} \
-              --network my-network \
-              $CONTAINER_REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME:$IMAGE_TAG
+            --name $IMAGE_NAME \
+            -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
+            -e TELEGRAM_AUTHORIZED_USER_IDS="${{ vars.TELEGRAM_AUTHORIZED_USER_IDS }}" \
+            -e OPEN_WEATHER_MAP_API_KEY="${{ secrets.OPEN_WEATHER_MAP_API_KEY }}" \
+            -e OPEN_EXCHANGE_RATES_APP_ID="${{ secrets.OPEN_EXCHANGE_RATES_APP_ID }}" \
+            -e QUOTES_REST_API_KEY="${{ secrets.QUOTES_REST_API_KEY }}" \
+            -e DATABASE_URL=${{ vars.DATABASE_URL }} \
+            --network my-network \
+            $CONTAINER_REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME:$IMAGE_TAG
 
             RETRY=5
             while [ $RETRY -gt 0 ]; do
