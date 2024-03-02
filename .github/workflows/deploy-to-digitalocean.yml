@@ -6,7 +6,7 @@ on:
 
 env:
   CONTAINER_REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.event.repository.name }}
 
 jobs:
   build:
@@ -25,12 +25,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract repository name
+        run: echo "REPO_NAME=$(echo $GITHUB_REPOSITORY | cut -d '/' -f 2)" >> $GITHUB_ENV
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ GITHUB.SHA }}
+          tags: ${{ env.CONTAINER_REGISTRY }}/${{ env.GITHUB_REPOSITORY_OWNER }}/${{ env.IMAGE_NAME }}:${{ GITHUB.SHA }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -45,8 +48,8 @@ jobs:
           envs: IMAGE_NAME,CONTAINER_REGISTRY,GITHUB_SHA
           script: |
             echo "Logging into the Container Registry..."
-            docker login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }} ${{ env.CONTAINER_REGISTRY }}
-            docker pull $CONTAINER_REGISTRY/$IMAGE_NAME:$GITHUB_SHA || { echo "Failed to pull Docker image."; exit 1; }
+            echo $GITHUB_TOKEN | docker login $CONTAINER_REGISTRY -u $GITHUB_REPOSITORY_OWNER --password-stdin
+            docker pull $CONTAINER_REGISTRY/$GITHUB_REPOSITORY_OWNER/$IMAGE_NAME:$GITHUB_SHA || { echo "Failed to pull Docker image."; exit 1; }
 
             docker stop $IMAGE_NAME || echo "No existing container to stop."
             docker rm $IMAGE_NAME || echo "No existing container to remove."
