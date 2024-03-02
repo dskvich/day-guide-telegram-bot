@@ -63,7 +63,7 @@ jobs:
             -e QUOTES_REST_API_KEY="${{ secrets.QUOTES_REST_API_KEY }}" \
             -e DATABASE_URL=${{ vars.DATABASE_URL }} \
             --network my-network \
-            $CONTAINER_REGISTRY/$IMAGE_NAME:$GITHUB_SHA
+            $CONTAINER_REGISTRY/$GITHUB_REPOSITORY_OWNER/$IMAGE_NAME:$GITHUB_SHA
 
             #echo "Cleaning up..."
             #docker system prune -a -f
