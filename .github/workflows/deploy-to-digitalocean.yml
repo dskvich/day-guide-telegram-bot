@@ -34,3 +34,56 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Digital Ocean droplet via SSH
+        uses: appleboy/ssh-action@v0.1.4
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: IMAGE_NAME,REGISTRY,GITHUB_SHA
+          script: |
+            echo "Logging into Digital Ocean Registry..."
+            docker login -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}  ${{ env.REGISTRY }}
+            docker pull $CONTAINER_REGISTRY/$IMAGE_NAME:$GITHUB_SHA || { echo "Failed to pull Docker image."; exit 1; }
+
+            docker stop $IMAGE_NAME || echo "No existing container to stop."
+            docker rm $IMAGE_NAME || echo "No existing container to remove."
+
+            docker network create my-network || echo "Network already exists."
+
+            echo "Starting new Docker container..."
+            docker run -d \
+            --name $IMAGE_NAME \
+            -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
+            -e TELEGRAM_AUTHORIZED_USER_IDS="${{ vars.TELEGRAM_AUTHORIZED_USER_IDS }}" \
+            -e OPEN_WEATHER_MAP_API_KEY="${{ secrets.OPEN_WEATHER_MAP_API_KEY }}" \
+            -e OPEN_EXCHANGE_RATES_APP_ID="${{ secrets.OPEN_EXCHANGE_RATES_APP_ID }}" \
+            -e QUOTES_REST_API_KEY="${{ secrets.QUOTES_REST_API_KEY }}" \
+            -e DATABASE_URL=${{ vars.DATABASE_URL }} \
+            --network my-network \
+            $CONTAINER_REGISTRY/$IMAGE_NAME:$GITHUB_SHA
+
+            #echo "Cleaning up..."
+            #docker system prune -a -f
+
+            RETRY=5
+            while [ $RETRY -gt 0 ]; do
+              if docker ps | grep -q $IMAGE_NAME; then
+                echo "Container $IMAGE_NAME started successfully."
+                break
+              else
+                ((RETRY--))
+                echo "Waiting for the container to start. Retries left: $RETRY"
+                sleep 5
+              fi
+            done
+
+            if [ $RETRY -eq 0 ]
+            then
+              echo "Container $IMAGE_NAME failed to start."
+              exit 1
+            fi
