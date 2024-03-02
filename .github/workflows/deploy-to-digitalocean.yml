@@ -51,6 +51,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            echo $CONTAINER_REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME:$IMAGE_TAG
             docker pull $CONTAINER_REGISTRY/${{ github.repository_owner }}/$IMAGE_NAME:$IMAGE_TAG || { echo "Failed to pull Docker image."; exit 1; }
             docker stop $IMAGE_NAME || echo "No existing container to stop."
             docker rm $IMAGE_NAME || echo "No existing container to remove."
