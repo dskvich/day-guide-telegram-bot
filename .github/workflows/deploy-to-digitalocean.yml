@@ -32,7 +32,6 @@ jobs:
         with:
           context: .
           push: true
-          provenance: false
           tags: ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ GITHUB.SHA }}
 
   deploy:
@@ -50,7 +49,7 @@ jobs:
             echo "Logging into the Container Registry..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.CONTAINER_REGISTRY }} -u ${{ github.actor }} --password-stdin
             
-            docker pull $CONTAINER_REGISTRY/$IMAGE_NAME:$GITHUB_SHA || { echo "Failed to pull Docker image."; exit 1; }
+            docker pull ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ GITHUB.SHA }} || { echo "Failed to pull Docker image."; exit 1; }
 
             docker stop $IMAGE_NAME || echo "No existing container to stop."
             docker rm $IMAGE_NAME || echo "No existing container to remove."
