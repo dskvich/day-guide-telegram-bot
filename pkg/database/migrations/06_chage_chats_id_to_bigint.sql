@@ -1,0 +1,2 @@
+-- +migrate Up
+ALTER TABLE chats ALTER COLUMN id TYPE BIGINT;
