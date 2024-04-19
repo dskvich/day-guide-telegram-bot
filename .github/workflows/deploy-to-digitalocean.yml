@@ -61,6 +61,7 @@ jobs:
               --name ${{ env.IMAGE_NAME }} \
               --env TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
               --env TELEGRAM_AUTHORIZED_USER_IDS="${{ vars.TELEGRAM_AUTHORIZED_USER_IDS }}" \
+              --env OPEN_AI_TOKEN="${{ secrets.OPEN_AI_TOKEN }}" \
               --env OPEN_WEATHER_MAP_API_KEY="${{ secrets.OPEN_WEATHER_MAP_API_KEY }}" \
               --env OPEN_EXCHANGE_RATES_APP_ID="${{ secrets.OPEN_EXCHANGE_RATES_APP_ID }}" \
               --env DATABASE_URL=${{ vars.DATABASE_URL }} \

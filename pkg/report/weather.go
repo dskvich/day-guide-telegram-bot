@@ -22,28 +22,21 @@ type WeatherFormatter interface {
 	Format(weather domain.Weather) string
 }
 
-type WeatherAssistant interface {
-	GetResponse(ctx context.Context, prompt string) (string, error)
-}
-
 type weather struct {
 	locations []domain.Location
 	fetcher   WeatherFetcher
 	formatter WeatherFormatter
-	assistant WeatherAssistant
 }
 
 func NewWeather(
 	locations []domain.Location,
 	fetcher WeatherFetcher,
 	formatter WeatherFormatter,
-	assistant WeatherAssistant,
 ) *weather {
 	return &weather{
 		locations: locations,
 		fetcher:   fetcher,
 		formatter: formatter,
-		assistant: assistant,
 	}
 }
 
@@ -58,13 +51,6 @@ func (w *weather) Generate(ctx context.Context) (string, error) {
 		sb.WriteString(w.formatter.Format(*weather))
 		sb.WriteString("\n")
 	}
-
-	/*resp, err := w.assistant.GetResponse(ctx, sb.String()+weatherAnalysisQuerySuffix)
-	if err != nil {
-		return "", fmt.Errorf("generating analysis part: %v", err)
-	}
-
-	sb.WriteString(resp)*/
 
 	return sb.String(), nil
 }

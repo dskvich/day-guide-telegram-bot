@@ -18,8 +18,8 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/farmsense"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/formatter"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/gpt"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openai"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openexchangerates"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openweathermap"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/report"
@@ -34,9 +34,9 @@ import (
 
 type Config struct {
 	TelegramBotToken          string  `env:"TELEGRAM_BOT_TOKEN,required"`
+	OpenAIToken               string  `env:"OPEN_AI_TOKEN,required"`
 	OpenWeatherMapAPIKey      string  `env:"OPEN_WEATHER_MAP_API_KEY,required"`
 	OpenExchangeRatesAPPID    string  `env:"OPEN_EXCHANGE_RATES_APP_ID,required"`
-	ChatGPTTelegramBotURL     string  `env:"CHAT_GPT_TELEGRAM_BOT_URL" envDefault:"http://chatgpt-telegram-bot:8080"`
 	TelegramAuthorizedUserIDs []int64 `env:"TELEGRAM_AUTHORIZED_USER_IDS" envSeparator:" "`
 	PgURL                     string  `env:"DATABASE_URL"`
 	PgHost                    string  `env:"DB_HOST" envDefault:"localhost:65432"`
@@ -96,9 +96,9 @@ func setupServices() (service.Group, error) {
 	}
 	authenticator := auth.NewAuthenticator(cfg.TelegramAuthorizedUserIDs)
 
-	gptClient, err := gpt.NewClient(cfg.ChatGPTTelegramBotURL)
+	_, err = openai.NewClient(cfg.OpenAIToken)
 	if err != nil {
-		return nil, fmt.Errorf("creating gpt client: %v", err)
+		return nil, fmt.Errorf("creating open AI client: %v", err)
 	}
 
 	locations := []domain.Location{
@@ -107,7 +107,7 @@ func setupServices() (service.Group, error) {
 		domain.Antalya,
 	}
 	weatherRepo := repository.NewWeatherRepository(db)
-	weatherReportGenerator := report.NewWeather(locations, weatherRepo, &formatter.Weather{}, gptClient)
+	weatherReportGenerator := report.NewWeather(locations, weatherRepo, &formatter.Weather{})
 
 	pairs := []domain.CurrencyPair{
 		{domain.USD, domain.RUB},
@@ -115,11 +115,10 @@ func setupServices() (service.Group, error) {
 	}
 	exchangeRateRepo := repository.NewExchangeRateRepository(db)
 	exchangeRateFormatter := formatter.ExchangeRate{}
-	//exchangeRateReportGenerator := report.NewExchangeRate(pairs, exchangeRateRepo, &exchangeRateFormatter, gptClient)
 	exchangeRatePlotReportGenerator := report.NewExchangeRatePlot(exchangeRateRepo, &exchangeRateFormatter)
 
 	moonPhaseRepo := repository.NewMoonPhaseRepository(db)
-	moonPhaseReportGenerator := report.NewMoonPhase(moonPhaseRepo, &formatter.MoonPhase{}, gptClient)
+	moonPhaseReportGenerator := report.NewMoonPhase(moonPhaseRepo, &formatter.MoonPhase{})
 
 	chatRepository := repository.NewChatRepository(db)
 
