@@ -1,6 +1,6 @@
 module github.com/sushkevichd/day-guide-telegram-bot
 
-go 1.21
+go 1.22
 
 require (
 	github.com/caarlos0/env/v9 v9.0.0
