@@ -255,31 +255,29 @@ func setupServices() (service.Group, error) {
 		return nil, err
 	}
 
-	/*
-		if svc, err = broadcaster.NewService(
-			"holidays broadcaster",
-			"55 5 * * *",
-			chatRepository,
-			holidaysGenerator,
-			messagesCh,
-		); err == nil {
-			svcGroup = append(svcGroup, svc)
-		} else {
-			return nil, err
-		}
+	if svc, err = broadcaster.NewService(
+		"holidays broadcaster",
+		"55 5 * * *",
+		chatRepository,
+		holidaysGenerator,
+		messagesCh,
+	); err == nil {
+		svcGroup = append(svcGroup, svc)
+	} else {
+		return nil, err
+	}
 
-		if svc, err = broadcaster.NewService(
-			"historical dates broadcaster",
-			"56 5 * * *",
-			chatRepository,
-			historicalEventsGenerator,
-			messagesCh,
-		); err == nil {
-			svcGroup = append(svcGroup, svc)
-		} else {
-			return nil, err
-		}
-	*/
+	if svc, err = broadcaster.NewService(
+		"historical dates broadcaster",
+		"56 5 * * *",
+		chatRepository,
+		historicalEventsGenerator,
+		messagesCh,
+	); err == nil {
+		svcGroup = append(svcGroup, svc)
+	} else {
+		return nil, err
+	}
 
 	return svcGroup, nil
 }
