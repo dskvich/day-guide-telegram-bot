@@ -42,6 +42,11 @@ type Config struct {
 	PgHost                    string  `env:"DB_HOST" envDefault:"localhost:65432"`
 }
 
+// Translate cron expressions into human-readable format at https://crontab.guru
+var weatherDailyCron = "50 5 * * *"         // At 08:50 UTC+3
+var exchangeRateDailyCron = "10 6,15 * * *" // At minute 10 past hour 9 and 18 UTC+3
+var moonPhaseDailyCron = "30 17 * * *"      // At 20:30 UTC+3
+
 func main() {
 	slog.SetDefault(logger.New(slog.LevelDebug))
 
@@ -155,7 +160,7 @@ func setupServices() (service.Group, error) {
 
 	if svc, err = broadcaster.NewService(
 		"weather broadcaster",
-		"50 5 * * *",
+		weatherDailyCron,
 		chatRepository,
 		weatherReportGenerator,
 		messagesCh,
@@ -181,7 +186,7 @@ func setupServices() (service.Group, error) {
 
 	if svc, err = plotbroadcaster.NewService(
 		"exchange rate broadcaster",
-		"10 6,15 * * *",
+		exchangeRateDailyCron,
 		chatRepository,
 		exchangeRatePlotReportGenerator,
 		messagesCh,
@@ -208,7 +213,7 @@ func setupServices() (service.Group, error) {
 
 	if svc, err = broadcaster.NewService(
 		"moon phase broadcaster",
-		"15 18 * * *",
+		moonPhaseDailyCron,
 		chatRepository,
 		moonPhaseReportGenerator,
 		messagesCh,
