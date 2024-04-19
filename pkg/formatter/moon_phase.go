@@ -52,6 +52,6 @@ func moonPhaseDescription(visibility int) string {
 	case visibility > 0 && visibility < 25:
 		return "Убывающий серп"
 	default:
-		return "Неизвестная фаза Луны"
+		return fmt.Sprintf("Неизвестная фаза Луны. Видимость %d", visibility)
 	}
 }
