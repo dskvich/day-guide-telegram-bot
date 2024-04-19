@@ -22,7 +22,6 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openexchangerates"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openweathermap"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/quotesrest"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/report"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/repository"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
@@ -39,7 +38,6 @@ type Config struct {
 	OpenExchangeRatesAPPID    string  `env:"OPEN_EXCHANGE_RATES_APP_ID,required"`
 	ChatGPTTelegramBotURL     string  `env:"CHAT_GPT_TELEGRAM_BOT_URL" envDefault:"http://chatgpt-telegram-bot:8080"`
 	TelegramAuthorizedUserIDs []int64 `env:"TELEGRAM_AUTHORIZED_USER_IDS" envSeparator:" "`
-	QuotesRestAPIKey          string  `env:"QUOTES_REST_API_KEY,required"`
 	PgURL                     string  `env:"DATABASE_URL"`
 	PgHost                    string  `env:"DB_HOST" envDefault:"localhost:65432"`
 }
@@ -123,9 +121,6 @@ func setupServices() (service.Group, error) {
 	moonPhaseRepo := repository.NewMoonPhaseRepository(db)
 	moonPhaseReportGenerator := report.NewMoonPhase(moonPhaseRepo, &formatter.MoonPhase{}, gptClient)
 
-	quoteRepo := repository.NewQuoteRepository(db)
-	quoteReportGenerator := report.NewQuote(quoteRepo, &formatter.Quote{}, gptClient)
-
 	chatRepository := repository.NewChatRepository(db)
 
 	messagesCh := make(chan domain.Message)
@@ -135,7 +130,6 @@ func setupServices() (service.Group, error) {
 		handler.NewWeather(weatherReportGenerator, messagesCh),
 		handler.NewExchangeRate(exchangeRatePlotReportGenerator, pairs, messagesCh),
 		handler.NewMoonPhase(moonPhaseReportGenerator, messagesCh),
-		handler.NewQuote(quoteReportGenerator, messagesCh),
 	}
 
 	dispatcher := command.NewDispatcher(handlers, defaultHandler)
@@ -218,32 +212,6 @@ func setupServices() (service.Group, error) {
 		"15 18 * * *",
 		chatRepository,
 		moonPhaseReportGenerator,
-		messagesCh,
-	); err == nil {
-		svcGroup = append(svcGroup, svc)
-	} else {
-		return nil, err
-	}
-
-	quotesRestClient := quotesrest.NewClient(cfg.QuotesRestAPIKey)
-
-	if svc, err = loader.NewService[*domain.Quote, struct{}](
-		"quote loader",
-		nil,
-		quotesRestClient,
-		quoteRepo,
-		8*time.Hour,
-	); err == nil {
-		svcGroup = append(svcGroup, svc)
-	} else {
-		return nil, err
-	}
-
-	if svc, err = broadcaster.NewService(
-		"quote broadcaster",
-		"5 5 * * *",
-		chatRepository,
-		quoteReportGenerator,
 		messagesCh,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)

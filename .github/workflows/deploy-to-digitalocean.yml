@@ -63,7 +63,6 @@ jobs:
               --env TELEGRAM_AUTHORIZED_USER_IDS="${{ vars.TELEGRAM_AUTHORIZED_USER_IDS }}" \
               --env OPEN_WEATHER_MAP_API_KEY="${{ secrets.OPEN_WEATHER_MAP_API_KEY }}" \
               --env OPEN_EXCHANGE_RATES_APP_ID="${{ secrets.OPEN_EXCHANGE_RATES_APP_ID }}" \
-              --env QUOTES_REST_API_KEY="${{ secrets.QUOTES_REST_API_KEY }}" \
               --env DATABASE_URL=${{ vars.DATABASE_URL }} \
               --network my-network \
               $FILL_IMAGE_NAME
