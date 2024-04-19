@@ -25,8 +25,6 @@ func (_ *MoonPhase) Format(m domain.MoonPhase) string {
 	var sb strings.Builder
 
 	sb.WriteString(fmt.Sprintf("%s %s, *%d-й* лунный день\n", phaseEmoji[m.Phase], moonPhaseDescription(m.IlluminationPrc), m.Age))
-	sb.WriteString(fmt.Sprintf("🌍 Расстояние до Земли: *%d км*\n", int(m.DistanceToEarth)))
-	sb.WriteString(fmt.Sprintf("🌞 Расстояние до Солнца: *%d км*\n", int(m.DistanceToSun)))
 
 	return sb.String()
 }
