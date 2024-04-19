@@ -32,6 +32,33 @@ import (
 	telegrambot "github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram"
 )
 
+// Cron for daily messages - check cron on https://crontab.guru
+const (
+	weatherDailyCron      = "50 5 * * *"    // At 08:50 UTC+3
+	exchangeRateDailyCron = "10 6,15 * * *" // At minute 10 past hour 9 and 18 UTC+3
+	moonPhaseDailyCron    = "30 17 * * *"   // At 20:30 UTC+3
+)
+
+// Pool intervals for loaders
+const (
+	weatherPoolInterval      = 30 * time.Minute
+	exchangeRatePoolInterval = 8 * time.Hour
+	moonPhasePoolInterval    = 30 * time.Minute
+)
+
+// Locations for a weather forecast
+var weatherForecastLocations = []domain.Location{
+	domain.SaintPetersburg,
+	domain.Pitkyaranta,
+	domain.Antalya,
+}
+
+// Currency pairs for exchange rate calculations
+var exchangeRatePairs = []domain.CurrencyPair{
+	{domain.USD, domain.RUB},
+	{domain.USD, domain.TRY},
+}
+
 type Config struct {
 	TelegramBotToken          string  `env:"TELEGRAM_BOT_TOKEN,required"`
 	OpenAIToken               string  `env:"OPEN_AI_TOKEN,required"`
@@ -42,16 +69,10 @@ type Config struct {
 	PgHost                    string  `env:"DB_HOST" envDefault:"localhost:65432"`
 }
 
-// Translate cron expressions into human-readable format at https://crontab.guru
-var weatherDailyCron = "50 5 * * *"         // At 08:50 UTC+3
-var exchangeRateDailyCron = "10 6,15 * * *" // At minute 10 past hour 9 and 18 UTC+3
-var moonPhaseDailyCron = "30 17 * * *"      // At 20:30 UTC+3
-
 func main() {
 	slog.SetDefault(logger.New(slog.LevelDebug))
 
 	if err := runMain(); err != nil {
-
 		slog.Error("shutting down due to error", logger.Err(err))
 		return
 	}
@@ -106,18 +127,9 @@ func setupServices() (service.Group, error) {
 		return nil, fmt.Errorf("creating open AI client: %v", err)
 	}
 
-	locations := []domain.Location{
-		domain.SaintPetersburg,
-		domain.Pitkyaranta,
-		domain.Antalya,
-	}
 	weatherRepo := repository.NewWeatherRepository(db)
-	weatherReportGenerator := report.NewWeather(locations, weatherRepo, &formatter.Weather{})
+	weatherReportGenerator := report.NewWeather(weatherForecastLocations, weatherRepo, &formatter.Weather{})
 
-	pairs := []domain.CurrencyPair{
-		{domain.USD, domain.RUB},
-		{domain.USD, domain.TRY},
-	}
 	exchangeRateRepo := repository.NewExchangeRateRepository(db)
 	exchangeRateFormatter := formatter.ExchangeRate{}
 	exchangeRatePlotReportGenerator := report.NewExchangeRatePlot(exchangeRateRepo, &exchangeRateFormatter)
@@ -132,7 +144,7 @@ func setupServices() (service.Group, error) {
 	handlers := []command.Handler{
 		handler.NewRegister(chatRepository, messagesCh),
 		handler.NewWeather(weatherReportGenerator, messagesCh),
-		handler.NewExchangeRate(exchangeRatePlotReportGenerator, pairs, messagesCh),
+		handler.NewExchangeRate(exchangeRatePlotReportGenerator, exchangeRatePairs, messagesCh),
 		handler.NewMoonPhase(moonPhaseReportGenerator, messagesCh),
 	}
 
@@ -148,10 +160,10 @@ func setupServices() (service.Group, error) {
 
 	if svc, err = loader.NewService[*domain.Weather, domain.Location](
 		"weather loader",
-		locations,
+		weatherForecastLocations,
 		openWeatherClient,
 		weatherRepo,
-		30*time.Minute,
+		weatherPoolInterval,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
@@ -174,10 +186,10 @@ func setupServices() (service.Group, error) {
 
 	if svc, err = loader.NewService[*domain.ExchangeRate, domain.CurrencyPair](
 		"exchange rate loader",
-		pairs,
+		exchangeRatePairs,
 		openExchangeRatesClient,
 		exchangeRateRepo,
-		8*time.Hour,
+		exchangeRatePoolInterval,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
@@ -190,7 +202,7 @@ func setupServices() (service.Group, error) {
 		chatRepository,
 		exchangeRatePlotReportGenerator,
 		messagesCh,
-		pairs,
+		exchangeRatePairs,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
@@ -204,7 +216,7 @@ func setupServices() (service.Group, error) {
 		nil,
 		farmSenseClient,
 		moonPhaseRepo,
-		30*time.Minute,
+		moonPhasePoolInterval,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
