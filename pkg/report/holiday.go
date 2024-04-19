@@ -3,7 +3,6 @@ package report
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -69,8 +68,6 @@ func (h *holiday) fetchPage(url string) (*goquery.Document, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
-	slog.Info("holidays loaded", "status", resp.Status)
 
 	return goquery.NewDocumentFromReader(resp.Body)
 }
