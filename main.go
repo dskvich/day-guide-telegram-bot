@@ -128,9 +128,6 @@ func setupServices() (service.Group, error) {
 
 	chatRepository := repository.NewChatRepository(db)
 
-	holidaysGenerator := report.NewHoliday()
-	historicalEventsGenerator := report.NewHistoricalEvent()
-
 	messagesCh := make(chan domain.Message)
 	defaultHandler := handler.NewRegister(chatRepository, messagesCh)
 	handlers := []command.Handler{
@@ -139,7 +136,6 @@ func setupServices() (service.Group, error) {
 		handler.NewExchangeRate(exchangeRatePlotReportGenerator, pairs, messagesCh),
 		handler.NewMoonPhase(moonPhaseReportGenerator, messagesCh),
 		handler.NewQuote(quoteReportGenerator, messagesCh),
-		handler.NewHoliday(holidaysGenerator, historicalEventsGenerator, messagesCh),
 	}
 
 	dispatcher := command.NewDispatcher(handlers, defaultHandler)
@@ -248,30 +244,6 @@ func setupServices() (service.Group, error) {
 		"5 5 * * *",
 		chatRepository,
 		quoteReportGenerator,
-		messagesCh,
-	); err == nil {
-		svcGroup = append(svcGroup, svc)
-	} else {
-		return nil, err
-	}
-
-	if svc, err = broadcaster.NewService(
-		"holidays broadcaster",
-		"55 5 * * *",
-		chatRepository,
-		holidaysGenerator,
-		messagesCh,
-	); err == nil {
-		svcGroup = append(svcGroup, svc)
-	} else {
-		return nil, err
-	}
-
-	if svc, err = broadcaster.NewService(
-		"historical dates broadcaster",
-		"56 5 * * *",
-		chatRepository,
-		historicalEventsGenerator,
 		messagesCh,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
