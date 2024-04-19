@@ -1,7 +1,11 @@
 # day-guide-telegram-bot
 
 ### Development
-After clone set the `TELEGRAM_BOT_TOKEN` and `GPT_TOKEN` environment variables.
+After clone set the following environment variables:
+- TELEGRAM_BOT_TOKEN
+- OPEN_AI_TOKEN
+- OPEN_WEATHER_MAP_API_KEY
+- OPEN_EXCHANGE_RATES_APP_ID
 
 To start the DB:
 `docker-compose up -d db`
