@@ -1,4 +1,4 @@
-package handler
+package command
 
 import (
 	"context"
@@ -29,11 +29,11 @@ func NewMoonPhase(
 	}
 }
 
-func (m *moonPhase) CanHandle(update *tgbotapi.Update) bool {
+func (m *moonPhase) CanExecute(update *tgbotapi.Update) bool {
 	return update.Message != nil && strings.HasPrefix(update.Message.Text, "/moon")
 }
 
-func (m *moonPhase) Handle(update *tgbotapi.Update) {
+func (m *moonPhase) Execute(update *tgbotapi.Update) {
 	response, err := m.reportGenerator.Generate(context.TODO())
 	if err != nil {
 		response = fmt.Sprintf("Failed to generate moon phase report: %v", err)

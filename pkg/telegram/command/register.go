@@ -1,4 +1,4 @@
-package handler
+package command
 
 import (
 	"context"
@@ -32,11 +32,11 @@ func NewRegister(
 	}
 }
 
-func (r *register) CanHandle(update *tgbotapi.Update) bool {
+func (r *register) CanExecute(update *tgbotapi.Update) bool {
 	return update.Message != nil && strings.HasPrefix(update.Message.Text, "/register")
 }
 
-func (r *register) Handle(update *tgbotapi.Update) {
+func (r *register) Execute(update *tgbotapi.Update) {
 	msg := "Registration completed"
 
 	chat := &domain.Chat{

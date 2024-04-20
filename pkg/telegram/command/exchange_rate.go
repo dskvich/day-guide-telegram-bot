@@ -1,4 +1,4 @@
-package handler
+package command
 
 import (
 	"context"
@@ -32,11 +32,11 @@ func NewExchangeRate(
 	}
 }
 
-func (e *exchangeRate) CanHandle(update *tgbotapi.Update) bool {
+func (e *exchangeRate) CanExecute(update *tgbotapi.Update) bool {
 	return update.Message != nil && strings.HasPrefix(update.Message.Text, "/rate")
 }
 
-func (e *exchangeRate) Handle(update *tgbotapi.Update) {
+func (e *exchangeRate) Execute(update *tgbotapi.Update) {
 	for _, pair := range e.pairs {
 		imageBytes, caption, err := e.reportGenerator.Generate(context.TODO(), pair)
 		if err != nil {

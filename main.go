@@ -12,8 +12,6 @@ import (
 	"github.com/caarlos0/env/v9"
 
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/auth"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/command"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/command/handler"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/database"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/farmsense"
@@ -28,8 +26,9 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/broadcaster"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/loader"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/plotbroadcaster"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/telegram"
-	telegrambot "github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram"
+	telegramservice "github.com/sushkevichd/day-guide-telegram-bot/pkg/service/telegram"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram/command"
 )
 
 // Cron for daily messages - check cron on https://crontab.guru
@@ -116,7 +115,7 @@ func setupServices() (service.Group, error) {
 		return nil, fmt.Errorf("creating db: %v", err)
 	}
 
-	bot, err := telegrambot.NewBot(cfg.TelegramBotToken)
+	bot, err := telegram.NewBot(cfg.TelegramBotToken)
 	if err != nil {
 		return nil, fmt.Errorf("creating telegram bot: %v", err)
 	}
@@ -143,18 +142,17 @@ func setupServices() (service.Group, error) {
 	holidayReportGenerator := report.NewHoliday(holidayRepository)
 
 	messagesCh := make(chan domain.Message)
-	defaultHandler := handler.NewRegister(chatRepository, messagesCh)
-	handlers := []command.Handler{
-		handler.NewRegister(chatRepository, messagesCh),
-		handler.NewWeather(weatherReportGenerator, messagesCh),
-		handler.NewExchangeRate(exchangeRatePlotReportGenerator, exchangeRatePairs, messagesCh),
-		handler.NewMoonPhase(moonPhaseReportGenerator, messagesCh),
-		handler.NewHoliday(holidayReportGenerator, messagesCh),
+	commands := []telegram.Command{
+		command.NewRegister(chatRepository, messagesCh),
+		command.NewWeather(weatherReportGenerator, messagesCh),
+		command.NewExchangeRate(exchangeRatePlotReportGenerator, exchangeRatePairs, messagesCh),
+		command.NewMoonPhase(moonPhaseReportGenerator, messagesCh),
+		command.NewHoliday(holidayReportGenerator, messagesCh),
 	}
 
-	dispatcher := command.NewDispatcher(handlers, defaultHandler)
+	commandDispatcher := telegram.NewCommandDispatcher(commands)
 
-	if svc, err = telegram.NewService(bot, authenticator, dispatcher, messagesCh); err == nil {
+	if svc, err = telegramservice.NewService(bot, authenticator, commandDispatcher, messagesCh); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
 		return nil, err

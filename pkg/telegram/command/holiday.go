@@ -1,4 +1,4 @@
-package handler
+package command
 
 import (
 	"context"
@@ -29,11 +29,11 @@ func NewHoliday(
 	}
 }
 
-func (_ *holiday) CanHandle(update *tgbotapi.Update) bool {
+func (_ *holiday) CanExecute(update *tgbotapi.Update) bool {
 	return update.Message != nil && strings.HasPrefix(update.Message.Text, "/holiday")
 }
 
-func (h *holiday) Handle(update *tgbotapi.Update) {
+func (h *holiday) Execute(update *tgbotapi.Update) {
 	response, err := h.reportGenerator.Generate(context.TODO())
 	if err != nil {
 		response = fmt.Sprintf("Failed to generate holidays report: %v", err)

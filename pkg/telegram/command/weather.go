@@ -1,4 +1,4 @@
-package handler
+package command
 
 import (
 	"context"
@@ -29,11 +29,11 @@ func NewWeather(
 	}
 }
 
-func (w *weather) CanHandle(update *tgbotapi.Update) bool {
+func (w *weather) CanExecute(update *tgbotapi.Update) bool {
 	return update.Message != nil && strings.HasPrefix(update.Message.Text, "/weather")
 }
 
-func (w *weather) Handle(update *tgbotapi.Update) {
+func (w *weather) Execute(update *tgbotapi.Update) {
 	response, err := w.reportGenerator.Generate(context.TODO())
 	if err != nil {
 		response = fmt.Sprintf("Failed to generate weather report: %v", err)
