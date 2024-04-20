@@ -20,19 +20,28 @@ func NewHolidayRepository(db *sql.DB) *holidayRepository {
 	return &holidayRepository{db: db}
 }
 
-func (repo *holidayRepository) Save(ctx context.Context, h *domain.Holiday) error {
-	columns := []string{"name", "date"}
-	args := []any{h.Name, h.Date}
-
-	placeholders := make([]string, len(columns))
-	for i := range columns {
-		placeholders[i] = fmt.Sprintf("$%d", i+1)
+func (repo *holidayRepository) BatchInsert(ctx context.Context, holidays []domain.Holiday) error {
+	if len(holidays) == 0 {
+		return nil // No holidays to insert
 	}
 
-	q := `INSERT INTO holidays (` + strings.Join(columns, ", ") + `) values (` + strings.Join(placeholders, ",") + `)`
+	columns := []string{"name", "date"}
+	placeholders := make([]string, 0, len(holidays))
+	var args []interface{}
+
+	for _, h := range holidays {
+		placeholder := make([]string, len(columns))
+		for j := range columns {
+			args = append(args, h.Name, h.Date)
+			placeholder[j] = fmt.Sprintf("$%d", len(args)-len(columns)+j+1)
+		}
+		placeholders = append(placeholders, fmt.Sprintf("(%s)", strings.Join(placeholder, ", ")))
+	}
+
+	q := `INSERT INTO holidays (` + strings.Join(columns, ", ") + `) VALUES ` + strings.Join(placeholders, ",")
 
 	if _, err := repo.db.ExecContext(ctx, q, args...); err != nil {
-		return fmt.Errorf("executing query: %v", err)
+		return fmt.Errorf("executing batch insert query: %v", err)
 	}
 
 	return nil
