@@ -10,6 +10,7 @@ require (
 	github.com/rubenv/sql-migrate v1.5.2
 	github.com/uptrace/bun/driver/pgdriver v1.1.16
 	github.com/wcharczuk/go-chart/v2 v2.1.1
+	golang.org/x/text v0.13.0
 )
 
 require (

@@ -139,6 +139,9 @@ func setupServices() (service.Group, error) {
 
 	chatRepository := repository.NewChatRepository(db)
 
+	holidayRepository := repository.NewHolidayRepository(db)
+	holidayReportGenerator := report.NewHoliday(holidayRepository)
+
 	messagesCh := make(chan domain.Message)
 	defaultHandler := handler.NewRegister(chatRepository, messagesCh)
 	handlers := []command.Handler{
@@ -146,6 +149,7 @@ func setupServices() (service.Group, error) {
 		handler.NewWeather(weatherReportGenerator, messagesCh),
 		handler.NewExchangeRate(exchangeRatePlotReportGenerator, exchangeRatePairs, messagesCh),
 		handler.NewMoonPhase(moonPhaseReportGenerator, messagesCh),
+		handler.NewHoliday(holidayReportGenerator, messagesCh),
 	}
 
 	dispatcher := command.NewDispatcher(handlers, defaultHandler)
