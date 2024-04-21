@@ -52,6 +52,10 @@ func (h *holiday) Generate(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("fetching holidays for date %s: %v", now, err)
 	}
 
+	if len(holidays) == 0 {
+		return "Сегодня нет официальных праздников. Наслаждайтесь обычным днём!", nil
+	}
+
 	holidaysStr := joinFirstNHolidays(holidays, 5)
 
 	resp, err := h.aiGenerator.GenerateTextResponse(holidayMessageSetupPrompt, holidaysStr)
