@@ -8,7 +8,7 @@ import (
 )
 
 const moonPhaseMessageSetupPrompt = `
-Расскажи хокку про эту луну, используй пацанские цытаты.
+Расскажи хокку про эту луну, используй пацанские цитаты.
 `
 
 type MoonPhaseFetcher interface {
