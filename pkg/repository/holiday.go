@@ -25,14 +25,14 @@ func (repo *holidayRepository) BatchInsert(ctx context.Context, holidays []domai
 		return nil // No holidays to insert
 	}
 
-	columns := []string{"name", "date"}
+	columns := []string{"order_number", "name", "date"}
 	placeholders := make([]string, 0, len(holidays))
 	var args []interface{}
 
 	for _, h := range holidays {
 		placeholder := make([]string, len(columns))
 		for j := range columns {
-			args = append(args, h.Name, h.Date)
+			args = append(args, h.OrderNumber, h.Name, h.Date)
 			placeholder[j] = fmt.Sprintf("$%d", len(args)-len(columns)+j+1)
 		}
 		placeholders = append(placeholders, fmt.Sprintf("(%s)", strings.Join(placeholder, ", ")))
@@ -49,9 +49,11 @@ func (repo *holidayRepository) BatchInsert(ctx context.Context, holidays []domai
 
 func (repo *holidayRepository) FetchByDate(ctx context.Context, date time.Time) ([]domain.Holiday, error) {
 	q := `
-		select name
+		select order_number,
+		       name
 		  from holidays
-		 where date = $1;
+		 where date = $1
+		 order by order_number;
 	`
 
 	// Format date to YYYY-MM-DD for comparison in SQL
@@ -71,6 +73,7 @@ func (repo *holidayRepository) FetchByDate(ctx context.Context, date time.Time) 
 	for rows.Next() {
 		var holiday domain.Holiday
 		if err := rows.Scan(
+			&holiday.OrderNumber,
 			&holiday.Name,
 		); err != nil {
 			return nil, fmt.Errorf("scanning rows: %v", err)

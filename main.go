@@ -125,7 +125,7 @@ func setupServices() (service.Group, error) {
 	}
 	authenticator := auth.NewAuthenticator(cfg.TelegramAuthorizedUserIDs)
 
-	_, err = openai.NewClient(cfg.OpenAIToken)
+	openAIClient, err := openai.NewClient(cfg.OpenAIToken)
 	if err != nil {
 		return nil, fmt.Errorf("creating open AI client: %v", err)
 	}
@@ -143,7 +143,7 @@ func setupServices() (service.Group, error) {
 	chatRepository := repository.NewChatRepository(db)
 
 	holidayRepository := repository.NewHolidayRepository(db)
-	holidayReportGenerator := report.NewHoliday(holidayRepository)
+	holidayReportGenerator := report.NewHoliday(holidayRepository, openAIClient)
 
 	messagesCh := make(chan domain.Message)
 	commands := []telegram.Command{
@@ -164,7 +164,7 @@ func setupServices() (service.Group, error) {
 
 	//TODO: refactor httpserve with using best approach, like routes etc
 	mux := http.NewServeMux()
-	mux.Handle("POST /api/holidays/import", handler.ImportHolidays())
+	mux.Handle("POST /api/holidays/import", handler.ImportHolidays(handler.HolidayParser{}, holidayRepository))
 
 	if svc, err = httpserver.NewService(fmt.Sprintf(":%s", cfg.Port), mux); err == nil {
 		svcGroup = append(svcGroup, svc)

@@ -3,6 +3,7 @@ package domain
 import "time"
 
 type Holiday struct {
-	Name string
-	Date time.Time
+	OrderNumber int
+	Name        string
+	Date        time.Time
 }
