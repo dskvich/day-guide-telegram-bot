@@ -39,7 +39,7 @@ const (
 	weatherDailyCron      = "1 6 * * *"    // At 09:01 UTC+3
 	exchangeRateDailyCron = "0 6,15 * * *" // At 9:00 and 18:00 UTC+3
 	moonPhaseDailyCron    = "30 17 * * *"  // At 20:30 UTC+3
-	holidayDailyCron      = "6 14 * * *"   //"2 6 * * *"    // At 9:02 UTC+3
+	holidayDailyCron      = "2 6 * * *"    // At 9:02 UTC+3
 )
 
 // Pool intervals for loaders
