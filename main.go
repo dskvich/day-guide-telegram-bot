@@ -36,9 +36,10 @@ import (
 
 // Cron for daily messages - check cron on https://crontab.guru
 const (
-	weatherDailyCron      = "50 5 * * *"    // At 08:50 UTC+3
-	exchangeRateDailyCron = "10 6,15 * * *" // At minute 10 past hour 9 and 18 UTC+3
-	moonPhaseDailyCron    = "30 17 * * *"   // At 20:30 UTC+3
+	weatherDailyCron      = "1 6 * * *"    // At 09:01 UTC+3
+	exchangeRateDailyCron = "0 6,15 * * *" // At 9:00 and 18:00 UTC+3
+	moonPhaseDailyCron    = "30 17 * * *"  // At 20:30 UTC+3
+	holidayDailyCron      = "6 14 * * *"   //"2 6 * * *"    // At 9:02 UTC+3
 )
 
 // Pool intervals for loaders
@@ -244,6 +245,18 @@ func setupServices() (service.Group, error) {
 		moonPhaseDailyCron,
 		chatRepository,
 		moonPhaseReportGenerator,
+		messagesCh,
+	); err == nil {
+		svcGroup = append(svcGroup, svc)
+	} else {
+		return nil, err
+	}
+
+	if svc, err = broadcaster.NewService(
+		"holiday broadcaster",
+		holidayDailyCron,
+		chatRepository,
+		holidayReportGenerator,
 		messagesCh,
 	); err == nil {
 		svcGroup = append(svcGroup, svc)
