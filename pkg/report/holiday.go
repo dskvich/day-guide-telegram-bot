@@ -13,8 +13,8 @@ import (
 )
 
 const holidayMessageSetupPrompt = `
-	Создай оповещение о сегодняшних праздниках для телеграм-бота.
-	Включи в сообщение эмодзи, затем название праздника на русском языке (помести * с обоих сторон), и добавь пару слов от себя.
+Создай оповещение о сегодняшних праздниках для телеграм-бота.
+Включи в сообщение эмодзи, затем название праздника на русском языке (помести * с обоих сторон), и добавь пару слов от себя.
 `
 
 type HolidaysFetcher interface {
@@ -25,18 +25,18 @@ type HolidaysFormatter interface {
 	Format(holidays []domain.Holiday) string
 }
 
-type AIResponseGenerator interface {
+type HolidaysAIResponseGenerator interface {
 	GenerateTextResponse(task, text string) (string, error)
 }
 
 type holiday struct {
 	fetcher     HolidaysFetcher
-	aiGenerator AIResponseGenerator
+	aiGenerator HolidaysAIResponseGenerator
 }
 
 func NewHoliday(
 	fetcher HolidaysFetcher,
-	aiGenerator AIResponseGenerator,
+	aiGenerator HolidaysAIResponseGenerator,
 ) *holiday {
 	return &holiday{
 		fetcher:     fetcher,
@@ -58,13 +58,12 @@ func (h *holiday) Generate(ctx context.Context) (string, error) {
 
 	holidaysStr := joinFirstNHolidays(holidays, 5)
 
-	resp, err := h.aiGenerator.GenerateTextResponse(holidayMessageSetupPrompt, holidaysStr)
+	generatedStr, err := h.aiGenerator.GenerateTextResponse(holidayMessageSetupPrompt, holidaysStr)
 	if err != nil {
-		return "", fmt.Errorf("generating response with AI: %v", err)
+		return "", fmt.Errorf("generating holidays response with AI: %v", err)
 	}
 
-	resp = fmt.Sprintf("🎉 *Праздники %s* 🎉\n\n", formatDate(now)) + resp
-
+	resp := fmt.Sprintf("🎉 *Праздники %s* 🎉\n\n", formatDate(now)) + generatedStr
 	return resp, nil
 }
 

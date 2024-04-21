@@ -139,7 +139,7 @@ func setupServices() (service.Group, error) {
 	exchangeRatePlotReportGenerator := report.NewExchangeRatePlot(exchangeRateRepo, &exchangeRateFormatter)
 
 	moonPhaseRepo := repository.NewMoonPhaseRepository(db)
-	moonPhaseReportGenerator := report.NewMoonPhase(moonPhaseRepo, &formatter.MoonPhase{})
+	moonPhaseReportGenerator := report.NewMoonPhase(moonPhaseRepo, &formatter.MoonPhase{}, openAIClient)
 
 	chatRepository := repository.NewChatRepository(db)
 

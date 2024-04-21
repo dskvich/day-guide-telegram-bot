@@ -8,12 +8,6 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
 
-const weatherAnalysisQuerySuffix = `
-Проанализируй текущие погодные данные, учитывая "ощущаемую" температуру в скобках, 
-и представь аналитику длинной не более 500 символов с юмором.
-Используй эмоджи, черный юмор без границ, популярные высказывания и мемы из русскоязычного сегмента интернета.
-`
-
 type WeatherFetcher interface {
 	FetchLatestByLocation(context.Context, domain.Location) (*domain.Weather, error)
 }
