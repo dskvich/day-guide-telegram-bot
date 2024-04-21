@@ -65,6 +65,7 @@ jobs:
               --env OPEN_WEATHER_MAP_API_KEY="${{ secrets.OPEN_WEATHER_MAP_API_KEY }}" \
               --env OPEN_EXCHANGE_RATES_APP_ID="${{ secrets.OPEN_EXCHANGE_RATES_APP_ID }}" \
               --env DATABASE_URL=${{ vars.DATABASE_URL }} \
+              -p 127.0.0.1:9090:8080 \
               --network my-network \
               $FILL_IMAGE_NAME
             
