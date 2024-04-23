@@ -56,7 +56,7 @@ func (h *holiday) Generate(ctx context.Context) (string, error) {
 		return "Сегодня нет официальных праздников. Наслаждайтесь обычным днём!", nil
 	}
 
-	holidaysStr := joinFirstNHolidays(holidays, 5)
+	holidaysStr := joinHolidays(holidays)
 
 	generatedStr, err := h.aiGenerator.GenerateTextResponse(holidayMessageSetupPrompt, holidaysStr)
 	if err != nil {
@@ -67,15 +67,9 @@ func (h *holiday) Generate(ctx context.Context) (string, error) {
 	return resp, nil
 }
 
-func joinFirstNHolidays(holidays []domain.Holiday, n int) string {
-	end := len(holidays)
-	if end > n {
-		end = n
-	}
-
-	// Extract the names
-	names := make([]string, 0, end)
-	for _, holiday := range holidays[:end] {
+func joinHolidays(holidays []domain.Holiday) string {
+	names := make([]string, 0, len(holidays))
+	for _, holiday := range holidays {
 		names = append(names, holiday.Name)
 	}
 
@@ -89,5 +83,8 @@ func formatDate(t time.Time) string {
 }
 
 func russianMonths() []string {
-	return []string{"января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"}
+	return []string{
+		"января", "февраля", "марта", "апреля", "мая", "июня", "июля",
+		"августа", "сентября", "октября", "ноября", "декабря",
+	}
 }
