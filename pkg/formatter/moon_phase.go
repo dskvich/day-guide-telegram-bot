@@ -24,34 +24,34 @@ var phaseEmoji = map[string]string{
 func (_ *MoonPhase) Format(m domain.MoonPhase) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("%s %s, *%d-й* лунный день\n", phaseEmoji[m.Phase], moonPhaseDescription(m.IlluminationPrc), m.Age))
+	sb.WriteString(fmt.Sprintf("%s %s, *%d-й* лунный день\n", phaseEmoji[m.Phase], moonPhaseDescription(m.Phase, m.IlluminationPrc), m.Age))
 
 	return sb.String()
 }
 
-func moonPhaseDescription(visibility int) string {
+func moonPhaseDescription(phase string, visibility int) string {
 	switch {
-	case visibility == 0:
+	case phase == "New Moon" && visibility == 0:
 		return "Новолуние"
-	case visibility > 0 && visibility < 25:
+	case phase == "Waxing Crescent" && visibility > 0 && visibility < 25:
 		return "Растущий серп"
-	case visibility >= 25 && visibility < 50:
+	case phase == "1st Quarter" && visibility >= 25 && visibility < 50:
 		return "Первая четверть"
-	case visibility == 50:
+	case phase == "Waxing Gibbous" && visibility == 50:
 		return "Полумесяц"
-	case visibility > 50 && visibility < 75:
-		return "Растущая гиббозная Луна"
-	case visibility >= 75 && visibility < 100:
+	case phase == "Waxing Gibbous" && visibility > 50 && visibility < 75:
+		return "Растущая Луна"
+	case phase == "Full Moon" && (visibility >= 75 && visibility <= 100):
 		return "Полнолуние"
-	case visibility > 75 && visibility < 100:
-		return "Убывающая гиббозная Луна"
-	case visibility >= 50 && visibility < 75:
+	case phase == "Waning Gibbous" && visibility > 75 && visibility < 100:
+		return "Убывающая Луна"
+	case phase == "3rd Quarter" && visibility >= 50 && visibility < 75:
 		return "Последняя четверть"
-	case visibility > 25 && visibility < 50:
+	case phase == "Waning Crescent" && visibility >= 25 && visibility < 50:
 		return "Убывающий полумесяц"
-	case visibility > 0 && visibility < 25:
+	case phase == "Waning Crescent" && visibility > 0 && visibility < 25:
 		return "Убывающий серп"
 	default:
-		return fmt.Sprintf("Неизвестная фаза Луны. Видимость %d", visibility)
+		return fmt.Sprintf("Неизвестная фаза Луны. Фаза %s, Видимость %d%%", phase, visibility)
 	}
 }
