@@ -31,26 +31,24 @@ func (_ *MoonPhase) Format(m domain.MoonPhase) string {
 
 func moonPhaseDescription(phase string, visibility int) string {
 	switch {
-	case phase == "New Moon" && visibility == 0:
+	case phase == "New Moon" && (visibility == 0 || visibility == 1 || visibility == 2):
 		return "Новолуние"
-	case phase == "Waxing Crescent" && visibility > 0 && visibility < 25:
+	case phase == "Waxing Crescent" && (visibility >= 2 && visibility <= 50):
 		return "Растущий серп"
-	case phase == "1st Quarter" && visibility >= 25 && visibility < 50:
+	case phase == "1st Quarter" && (visibility >= 50 && visibility <= 56):
 		return "Первая четверть"
-	case phase == "Waxing Gibbous" && visibility == 50:
-		return "Полумесяц"
-	case phase == "Waxing Gibbous" && visibility > 50 && visibility < 75:
+	case phase == "Waxing Gibbous" && (visibility >= 56 && visibility <= 75):
 		return "Растущая Луна"
-	case phase == "Full Moon" && (visibility >= 75 && visibility <= 100):
+	case phase == "Full Moon" && visibility == 100:
 		return "Полнолуние"
-	case phase == "Waning Gibbous" && visibility > 75 && visibility < 100:
+	case phase == "Waning Gibbous" && (visibility >= 53 && visibility <= 100):
 		return "Убывающая Луна"
-	case phase == "3rd Quarter" && visibility >= 50 && visibility < 75:
+	case phase == "3rd Quarter" && (visibility >= 47 && visibility <= 53):
 		return "Последняя четверть"
-	case phase == "Waning Crescent" && visibility >= 25 && visibility < 50:
-		return "Убывающий полумесяц"
-	case phase == "Waning Crescent" && visibility > 0 && visibility < 25:
+	case phase == "Waning Crescent" && (visibility >= 1 && visibility <= 47):
 		return "Убывающий серп"
+	case phase == "Dark Moon" && (visibility == 0 || visibility == 1):
+		return "Тёмное новолуние"
 	default:
 		return fmt.Sprintf("Неизвестная фаза Луны. Фаза %s, Видимость %d%%", phase, visibility)
 	}
