@@ -53,13 +53,11 @@ const (
 var weatherForecastLocations = []domain.Location{
 	domain.SaintPetersburg,
 	domain.Pitkyaranta,
-	domain.Antalya,
 }
 
 // Currency pairs for exchange rate calculations
 var exchangeRatePairs = []domain.CurrencyPair{
 	{domain.USD, domain.RUB},
-	{domain.USD, domain.TRY},
 }
 
 type Config struct {
