@@ -15,29 +15,22 @@ type MoonPhaseFetcher interface {
 	FetchLatestPhase(context.Context) (*domain.MoonPhase, error)
 }
 
-type MoonPhaseAIResponseGenerator interface {
-	GenerateTextResponse(task, text string) (string, error)
-}
-
 type MoonPhaseFormatter interface {
 	Format(domain.MoonPhase) string
 }
 
 type moonPhase struct {
-	fetcher     MoonPhaseFetcher
-	formatter   MoonPhaseFormatter
-	aiGenerator MoonPhaseAIResponseGenerator
+	fetcher   MoonPhaseFetcher
+	formatter MoonPhaseFormatter
 }
 
 func NewMoonPhase(
 	fetcher MoonPhaseFetcher,
 	formatter MoonPhaseFormatter,
-	aiGenerator MoonPhaseAIResponseGenerator,
 ) *moonPhase {
 	return &moonPhase{
-		fetcher:     fetcher,
-		formatter:   formatter,
-		aiGenerator: aiGenerator,
+		fetcher:   fetcher,
+		formatter: formatter,
 	}
 }
 
@@ -47,13 +40,5 @@ func (m *moonPhase) Generate(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("fetching latest moon phase: %v", err)
 	}
 
-	phaseStr := m.formatter.Format(*phase)
-
-	generatedStr, err := m.aiGenerator.GenerateTextResponse(moonPhaseMessageSetupPrompt, phaseStr)
-	if err != nil {
-		return "", fmt.Errorf("generating moon phase response with AI: %v", err)
-	}
-
-	resp := phaseStr + "\n" + generatedStr
-	return resp, nil
+	return m.formatter.Format(*phase), nil
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/formatter"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/handler"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openai"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openexchangerates"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openweathermap"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/report"
@@ -124,10 +123,10 @@ func setupServices() (service.Group, error) {
 	}
 	authenticator := auth.NewAuthenticator(cfg.TelegramAuthorizedUserIDs)
 
-	openAIClient, err := openai.NewClient(cfg.OpenAIToken)
+	/*openAIClient, err := openai.NewClient(cfg.OpenAIToken)
 	if err != nil {
 		return nil, fmt.Errorf("creating open AI client: %v", err)
-	}
+	}*/
 
 	weatherRepo := repository.NewWeatherRepository(db)
 	weatherReportGenerator := report.NewWeather(weatherForecastLocations, weatherRepo, &formatter.Weather{})
@@ -137,12 +136,12 @@ func setupServices() (service.Group, error) {
 	exchangeRatePlotReportGenerator := report.NewExchangeRatePlot(exchangeRateRepo, &exchangeRateFormatter)
 
 	moonPhaseRepo := repository.NewMoonPhaseRepository(db)
-	moonPhaseReportGenerator := report.NewMoonPhase(moonPhaseRepo, &formatter.MoonPhase{}, openAIClient)
+	moonPhaseReportGenerator := report.NewMoonPhase(moonPhaseRepo, &formatter.MoonPhase{})
 
 	chatRepository := repository.NewChatRepository(db)
 
 	holidayRepository := repository.NewHolidayRepository(db)
-	holidayReportGenerator := report.NewHoliday(holidayRepository, openAIClient)
+	holidayReportGenerator := report.NewHoliday(holidayRepository)
 
 	messagesCh := make(chan domain.Message)
 	commands := []telegram.Command{

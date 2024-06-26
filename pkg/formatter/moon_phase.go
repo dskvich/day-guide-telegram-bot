@@ -24,32 +24,32 @@ var phaseEmoji = map[string]string{
 func (_ *MoonPhase) Format(m domain.MoonPhase) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("%s %s, *%d-й* лунный день\n", phaseEmoji[m.Phase], moonPhaseDescription(m.Phase, m.IlluminationPrc), m.Age))
+	sb.WriteString(fmt.Sprintf("%s %s, *%d-й* лунный день\n", phaseEmoji[m.Phase], moonPhaseDescription(m.Phase), m.Age))
 
 	return sb.String()
 }
 
-func moonPhaseDescription(phase string, visibility int) string {
+func moonPhaseDescription(phase string) string {
 	switch {
-	case phase == "New Moon" && (visibility == 0 || visibility == 1 || visibility == 2):
+	case phase == "New Moon":
 		return "Новолуние"
-	case phase == "Waxing Crescent" && (visibility >= 2 && visibility <= 50):
+	case phase == "Waxing Crescent":
 		return "Растущий серп"
-	case phase == "1st Quarter" && (visibility >= 50 && visibility <= 56):
+	case phase == "1st Quarter":
 		return "Первая четверть"
-	case phase == "Waxing Gibbous" && (visibility >= 56 && visibility <= 75):
+	case phase == "Waxing Gibbous":
 		return "Растущая Луна"
-	case phase == "Full Moon" && visibility == 100:
+	case phase == "Full Moon":
 		return "Полнолуние"
-	case phase == "Waning Gibbous" && (visibility >= 53 && visibility <= 100):
+	case phase == "Waning Gibbous":
 		return "Убывающая Луна"
-	case phase == "3rd Quarter" && (visibility >= 47 && visibility <= 53):
+	case phase == "3rd Quarter":
 		return "Последняя четверть"
-	case phase == "Waning Crescent" && (visibility >= 1 && visibility <= 47):
+	case phase == "Waning Crescent":
 		return "Убывающий серп"
-	case phase == "Dark Moon" && (visibility == 0 || visibility == 1):
+	case phase == "Dark Moon":
 		return "Тёмное новолуние"
 	default:
-		return fmt.Sprintf("Неизвестная фаза Луны. Фаза %s, Видимость %d%%", phase, visibility)
+		return fmt.Sprintf("Неизвестная фаза Луны -  %s", phase)
 	}
 }

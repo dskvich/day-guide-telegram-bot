@@ -25,22 +25,15 @@ type HolidaysFormatter interface {
 	Format(holidays []domain.Holiday) string
 }
 
-type HolidaysAIResponseGenerator interface {
-	GenerateTextResponse(task, text string) (string, error)
-}
-
 type holiday struct {
-	fetcher     HolidaysFetcher
-	aiGenerator HolidaysAIResponseGenerator
+	fetcher HolidaysFetcher
 }
 
 func NewHoliday(
 	fetcher HolidaysFetcher,
-	aiGenerator HolidaysAIResponseGenerator,
 ) *holiday {
 	return &holiday{
-		fetcher:     fetcher,
-		aiGenerator: aiGenerator,
+		fetcher: fetcher,
 	}
 }
 
@@ -58,12 +51,7 @@ func (h *holiday) Generate(ctx context.Context) (string, error) {
 
 	holidaysStr := joinHolidays(holidays)
 
-	generatedStr, err := h.aiGenerator.GenerateTextResponse(holidayMessageSetupPrompt, holidaysStr)
-	if err != nil {
-		return "", fmt.Errorf("generating holidays response with AI: %v", err)
-	}
-
-	resp := fmt.Sprintf("🎉 *Праздники %s* 🎉\n\n", formatDate(now)) + generatedStr
+	resp := fmt.Sprintf("🎉 *Праздники %s* 🎉\n\n", formatDate(now)) + holidaysStr
 	return resp, nil
 }
 
