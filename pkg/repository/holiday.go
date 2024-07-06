@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
+
+	"github.com/lib/pq"
 
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
@@ -20,40 +21,17 @@ func NewHolidayRepository(db *sql.DB) *holidayRepository {
 	return &holidayRepository{db: db}
 }
 
-func (repo *holidayRepository) BatchInsert(ctx context.Context, holidays []domain.Holiday) error {
-	if len(holidays) == 0 {
-		return nil // No holidays to insert
-	}
-
-	columns := []string{"order_number", "name", "date"}
-	placeholders := make([]string, 0, len(holidays))
-	var args []interface{}
-
-	for _, h := range holidays {
-		placeholder := make([]string, len(columns))
-		for j := range columns {
-			args = append(args, h.OrderNumber, h.Name, h.Date)
-			placeholder[j] = fmt.Sprintf("$%d", len(args)-len(columns)+j+1)
-		}
-		placeholders = append(placeholders, fmt.Sprintf("(%s)", strings.Join(placeholder, ", ")))
-	}
-
-	q := `INSERT INTO holidays (` + strings.Join(columns, ", ") + `) VALUES ` + strings.Join(placeholders, ",")
-
-	if _, err := repo.db.ExecContext(ctx, q, args...); err != nil {
-		return fmt.Errorf("executing batch insert query: %v", err)
-	}
-
-	return nil
-}
-
 func (repo *holidayRepository) FetchByDate(ctx context.Context, date time.Time) ([]domain.Holiday, error) {
 	q := `
-		select order_number,
-		       name
-		  from holidays
-		 where date = $1
-		 order by order_number;
+        select h.order_number,
+               h.name,
+               ARRAY_AGG(c.name) AS categories
+		from holidays h
+		join holiday_category_links hcl ON h.id = hcl.holiday_id
+		join holiday_categories c ON hcl.category_id = c.id
+		where h.date = $1
+		group by h.id
+		order by h.order_number;
 	`
 
 	// Format date to YYYY-MM-DD for comparison in SQL
@@ -70,16 +48,25 @@ func (repo *holidayRepository) FetchByDate(ctx context.Context, date time.Time) 
 	}()
 
 	var holidays []domain.Holiday
+
 	for rows.Next() {
 		var holiday domain.Holiday
+		var categoryNames []string
+
 		if err := rows.Scan(
 			&holiday.OrderNumber,
 			&holiday.Name,
+			pq.Array(&categoryNames),
 		); err != nil {
 			return nil, fmt.Errorf("scanning rows: %v", err)
 		}
 
 		holiday.Date = date
+
+		for _, categoryName := range categoryNames {
+			holiday.Categories = append(holiday.Categories, categoryName)
+		}
+
 		holidays = append(holidays, holiday)
 	}
 

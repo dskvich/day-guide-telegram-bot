@@ -12,11 +12,6 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 )
 
-const holidayMessageSetupPrompt = `
-Создай оповещение о сегодняшних праздниках для телеграм-бота.
-Включи в сообщение эмодзи, затем название праздника на русском языке (помести * с обоих сторон), и добавь пару слов от себя.
-`
-
 type HolidaysFetcher interface {
 	FetchByDate(ctx context.Context, date time.Time) ([]domain.Holiday, error)
 }
@@ -51,17 +46,38 @@ func (h *holiday) Generate(ctx context.Context) (string, error) {
 
 	holidaysStr := joinHolidays(holidays)
 
-	resp := fmt.Sprintf("🎉 *Праздники %s* 🎉\n\n", formatDate(now)) + holidaysStr
+	resp := fmt.Sprintf("🎉 *%s: Какие праздники отмечаем?* 🎉\n\n", formatDate(now)) + holidaysStr
 	return resp, nil
 }
 
 func joinHolidays(holidays []domain.Holiday) string {
 	names := make([]string, 0, len(holidays))
 	for _, holiday := range holidays {
-		names = append(names, holiday.Name)
+		var icons string
+		for _, category := range holiday.Categories {
+			icons += getEmoji(category)
+		}
+		names = append(names, fmt.Sprintf("%s %s", icons, holiday.Name))
 	}
 
 	return strings.Join(names, "\n")
+}
+
+func getEmoji(category string) string {
+	switch category {
+	case "Международные праздники":
+		return "🌍"
+	case "Праздники России":
+		return "🇷🇺"
+	case "Праздники славян":
+		return "🪆"
+	case "Праздники ООН":
+		return "🤝"
+	case "Православные праздники":
+		return "✝️"
+	default:
+		return "❓"
+	}
 }
 
 // TODO: create formatter
