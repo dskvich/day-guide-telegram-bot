@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,7 +16,6 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/domain"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/farmsense"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/formatter"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/handler"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/logger"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openexchangerates"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openweathermap"
@@ -25,7 +23,6 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/repository"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/broadcaster"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/httpserver"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/loader"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/plotbroadcaster"
 	telegramservice "github.com/sushkevichd/day-guide-telegram-bot/pkg/service/telegram"
@@ -155,16 +152,6 @@ func setupServices() (service.Group, error) {
 	commandDispatcher := telegram.NewCommandDispatcher(commands)
 
 	if svc, err = telegramservice.NewService(bot, authenticator, commandDispatcher, messagesCh); err == nil {
-		svcGroup = append(svcGroup, svc)
-	} else {
-		return nil, err
-	}
-
-	//TODO: refactor httpserve with using best approach, like routes etc
-	mux := http.NewServeMux()
-	mux.Handle("POST /api/holidays/import", handler.ImportHolidays(handler.HolidayParser{}, holidayRepository))
-
-	if svc, err = httpserver.NewService(fmt.Sprintf(":%s", cfg.Port), mux); err == nil {
 		svcGroup = append(svcGroup, svc)
 	} else {
 		return nil, err
