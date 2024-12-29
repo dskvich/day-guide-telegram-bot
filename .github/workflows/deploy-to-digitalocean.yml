@@ -128,7 +128,7 @@ jobs:
             ✅ *Deploy Success*
             📦 Service: `${{ env.IMAGE_NAME }}`
             🔖 Revision: `${{ steps.extract_revision.outputs.revision }}`
-            📝 Commit Message: `${{ steps.commit.outputs.message }}`
+            📝 Release Notes: `${{ steps.commit.outputs.message }}`
 
       - name: Notify Deploy Failure
         if: failure()
