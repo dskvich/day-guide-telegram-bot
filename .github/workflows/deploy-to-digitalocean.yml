@@ -113,6 +113,9 @@ jobs:
         id: extract_revision
         run: echo "::set-output name=revision::$(echo '${{ needs.build.outputs.tags }}' | awk -F':' '{print $NF}')"
 
+      - name: Get Commit Messages
+        run: echo "commit_messages=$(git log -1 --pretty=format:'%s')" >> $GITHUB_ENV
+
       - name: Notify Deploy Success
         if: success()
         uses: appleboy/telegram-action@master
@@ -124,6 +127,7 @@ jobs:
             ✅ *Deploy Success*
             📦 Service: `${{ env.IMAGE_NAME }}`
             🔖 Revision: `${{ steps.extract_revision.outputs.revision }}`
+            📝 Commit Message: `${{ env.commit_messages }}`
 
       - name: Notify Deploy Failure
         if: failure()
