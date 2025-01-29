@@ -48,7 +48,8 @@ const (
 // Locations for a weather forecast
 var weatherForecastLocations = []domain.Location{
 	domain.SaintPetersburg,
-	domain.Pitkyaranta,
+	domain.Antalya,
+	domain.NhaTrang,
 }
 
 // Currency pairs for exchange rate calculations
@@ -63,7 +64,7 @@ type Config struct {
 	OpenExchangeRatesAPPID    string  `env:"OPEN_EXCHANGE_RATES_APP_ID,required"`
 	TelegramAuthorizedUserIDs []int64 `env:"TELEGRAM_AUTHORIZED_USER_IDS" envSeparator:" "`
 	PgURL                     string  `env:"DATABASE_URL"`
-	PgHost                    string  `env:"DB_HOST" envDefault:"localhost:65432"`
+	PgHost                    string  `env:"DB_HOST" envDefault:"localhost:65433"`
 	Port                      string  `env:"PORT" envDefault:"8080"`
 }
 

@@ -7,10 +7,10 @@ services:
       - ./test/db/postgres-init:/docker-entrypoint-initdb.d
       - data:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
+      POSTGRES_USER: dayguide
+      POSTGRES_PASSWORD: dayguide
     ports:
-      - 127.0.0.1:65432:5432
+      - 127.0.0.1:65433:5432
 
 volumes:
   data:

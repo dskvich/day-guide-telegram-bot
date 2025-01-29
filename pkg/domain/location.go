@@ -7,4 +7,5 @@ const (
 	Pitkyaranta     Location = "Питкяранта"
 	Antalya         Location = "Анталья"
 	Phuket          Location = "Пхукет"
+	NhaTrang        Location = "Нячанг"
 )
