@@ -47,7 +47,7 @@ func NewService[T any, P any](
 
 func (svc *service[T, P]) Name() string { return svc.name }
 
-func (svc *service[T, P]) Run(ctx context.Context) error {
+func (svc *service[T, P]) Start(ctx context.Context) error {
 	slog.Info(fmt.Sprintf("starting %s service", svc.name), "interval", svc.pollInterval.String())
 	defer slog.Info(fmt.Sprintf("stopped %s service", svc.name))
 

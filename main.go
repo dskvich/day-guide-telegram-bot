@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v9"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/workers"
 
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/auth"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/database"
@@ -21,13 +22,11 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openweathermap"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/report"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/repository"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/broadcaster"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/loader"
-	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service/plotbroadcaster"
-	telegramservice "github.com/sushkevichd/day-guide-telegram-bot/pkg/service/telegram"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram/command"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/workers/loader"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/workers/plotbroadcaster"
+	telegramservice "github.com/sushkevichd/day-guide-telegram-bot/pkg/workers/telegram"
 )
 
 // Cron for daily messages - check cron on https://crontab.guru
@@ -79,7 +78,7 @@ func main() {
 }
 
 func runMain() error {
-	svcGroup, err := setupServices()
+	workerGroup, err := setupWorkers()
 	if err != nil {
 		return err
 	}
@@ -98,17 +97,17 @@ func runMain() error {
 		}
 	}()
 
-	return svcGroup.Run(ctx)
+	return workerGroup.Start(ctx)
 }
 
-func setupServices() (service.Group, error) {
+func setupWorkers() (workers.Group, error) {
 	cfg := Config{}
 	if err := env.Parse(&cfg); err != nil {
 		return nil, fmt.Errorf("parsing env config: %v", err)
 	}
 
-	var svc service.Service
-	var svcGroup service.Group
+	var worker workers.Worker
+	var workerGroup workers.Group
 
 	db, err := database.NewPostgres(cfg.PgURL, cfg.PgHost)
 	if err != nil {
@@ -152,53 +151,53 @@ func setupServices() (service.Group, error) {
 
 	commandDispatcher := telegram.NewCommandDispatcher(commands)
 
-	if svc, err = telegramservice.NewService(bot, authenticator, commandDispatcher, messagesCh); err == nil {
-		svcGroup = append(svcGroup, svc)
+	if worker, err = telegramservice.NewService(bot, authenticator, commandDispatcher, messagesCh); err == nil {
+		workerGroup = append(workerGroup, worker)
 	} else {
 		return nil, err
 	}
 
 	openWeatherClient := openweathermap.NewClient(cfg.OpenWeatherMapAPIKey)
 
-	if svc, err = loader.NewService[*domain.Weather, domain.Location](
+	if worker, err = loader.NewService[*domain.Weather, domain.Location](
 		"weather loader",
 		weatherForecastLocations,
 		openWeatherClient,
 		weatherRepo,
 		weatherPoolInterval,
 	); err == nil {
-		svcGroup = append(svcGroup, svc)
+		workerGroup = append(workerGroup, worker)
 	} else {
 		return nil, err
 	}
 
-	if svc, err = broadcaster.NewService(
+	if worker, err = workers.NewBroadcaster(
 		"weather broadcaster",
 		weatherDailyCron,
 		chatRepository,
 		weatherReportGenerator,
 		messagesCh,
 	); err == nil {
-		svcGroup = append(svcGroup, svc)
+		workerGroup = append(workerGroup, worker)
 	} else {
 		return nil, err
 	}
 
 	openExchangeRatesClient := openexchangerates.NewClient(cfg.OpenExchangeRatesAPPID)
 
-	if svc, err = loader.NewService[*domain.ExchangeRate, domain.CurrencyPair](
+	if worker, err = loader.NewService[*domain.ExchangeRate, domain.CurrencyPair](
 		"exchange rate loader",
 		exchangeRatePairs,
 		openExchangeRatesClient,
 		exchangeRateRepo,
 		exchangeRatePoolInterval,
 	); err == nil {
-		svcGroup = append(svcGroup, svc)
+		workerGroup = append(workerGroup, worker)
 	} else {
 		return nil, err
 	}
 
-	if svc, err = plotbroadcaster.NewService(
+	if worker, err = plotbroadcaster.NewService(
 		"exchange rate broadcaster",
 		exchangeRateDailyCron,
 		chatRepository,
@@ -206,48 +205,48 @@ func setupServices() (service.Group, error) {
 		messagesCh,
 		exchangeRatePairs,
 	); err == nil {
-		svcGroup = append(svcGroup, svc)
+		workerGroup = append(workerGroup, worker)
 	} else {
 		return nil, err
 	}
 
 	farmSenseClient := farmsense.NewClient()
 
-	if svc, err = loader.NewService[*domain.MoonPhase, struct{}](
+	if worker, err = loader.NewService[*domain.MoonPhase, struct{}](
 		"moon phase loader",
 		nil,
 		farmSenseClient,
 		moonPhaseRepo,
 		moonPhasePoolInterval,
 	); err == nil {
-		svcGroup = append(svcGroup, svc)
+		workerGroup = append(workerGroup, worker)
 	} else {
 		return nil, err
 	}
 
-	if svc, err = broadcaster.NewService(
+	if worker, err = workers.NewBroadcaster(
 		"moon phase broadcaster",
 		moonPhaseDailyCron,
 		chatRepository,
 		moonPhaseReportGenerator,
 		messagesCh,
 	); err == nil {
-		svcGroup = append(svcGroup, svc)
+		workerGroup = append(workerGroup, worker)
 	} else {
 		return nil, err
 	}
 
-	if svc, err = broadcaster.NewService(
+	if worker, err = workers.NewBroadcaster(
 		"holiday broadcaster",
 		holidayDailyCron,
 		chatRepository,
 		holidayReportGenerator,
 		messagesCh,
 	); err == nil {
-		svcGroup = append(svcGroup, svc)
+		workerGroup = append(workerGroup, worker)
 	} else {
 		return nil, err
 	}
 
-	return svcGroup, nil
+	return workerGroup, nil
 }

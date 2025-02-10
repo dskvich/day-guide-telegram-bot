@@ -48,7 +48,7 @@ func NewService(
 
 func (svc *service) Name() string { return "telegram bot" }
 
-func (svc *service) Run(ctx context.Context) error {
+func (svc *service) Start(ctx context.Context) error {
 	slog.Info("starting telegram bot service")
 	defer slog.Info("stopped telegram bot service")
 
