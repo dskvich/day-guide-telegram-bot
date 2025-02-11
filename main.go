@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v9"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/googleai"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/workers"
 
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/auth"
@@ -22,6 +23,7 @@ import (
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/openweathermap"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/report"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/repository"
+	"github.com/sushkevichd/day-guide-telegram-bot/pkg/service"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/telegram/command"
 	"github.com/sushkevichd/day-guide-telegram-bot/pkg/workers/loader"
@@ -115,7 +117,7 @@ func setupWorkers() (workers.Group, error) {
 		return nil, fmt.Errorf("creating db: %v", err)
 	}
 
-	bot, err := telegram.NewBot(cfg.TelegramBotToken)
+	telegramClient, err := telegram.NewClient(cfg.TelegramBotToken)
 	if err != nil {
 		return nil, fmt.Errorf("creating telegram bot: %v", err)
 	}
@@ -126,10 +128,10 @@ func setupWorkers() (workers.Group, error) {
 		return nil, fmt.Errorf("creating open AI client: %v", err)
 	}*/
 
-	/*googleAIClient, err := googleai.NewClient(cfg.GoogleAIAPIKey)
+	googleAIClient, err := googleai.NewClient(cfg.GoogleAIAPIKey)
 	if err != nil {
 		return nil, fmt.Errorf("creating google AI client: %v", err)
-	}*/
+	}
 
 	weatherRepo := repository.NewWeatherRepository(db)
 	weatherReportGenerator := report.NewWeather(weatherForecastLocations, weatherRepo, &formatter.Weather{})
@@ -146,8 +148,11 @@ func setupWorkers() (workers.Group, error) {
 	holidayRepository := repository.NewHolidayRepository(db)
 	holidayReportGenerator := report.NewHoliday(holidayRepository)
 
+	hackerNewsService := service.NewsHackerNewsService()
+
 	messagesCh := make(chan domain.Message)
 	commands := []telegram.Command{
+		command.NewGetHackerNews(hackerNewsService, googleAIClient, telegramClient),
 		command.NewRegister(chatRepository, messagesCh),
 		command.NewWeather(weatherReportGenerator, messagesCh),
 		command.NewExchangeRate(exchangeRatePlotReportGenerator, exchangeRatePairs, messagesCh),
@@ -157,7 +162,7 @@ func setupWorkers() (workers.Group, error) {
 
 	commandDispatcher := telegram.NewCommandDispatcher(commands)
 
-	if worker, err = telegramservice.NewService(bot, authenticator, commandDispatcher, messagesCh); err == nil {
+	if worker, err = telegramservice.NewService(telegramClient, authenticator, commandDispatcher, messagesCh); err == nil {
 		workerGroup = append(workerGroup, worker)
 	} else {
 		return nil, err
