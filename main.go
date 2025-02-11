@@ -61,6 +61,7 @@ type Config struct {
 	OpenAIToken               string  `env:"OPEN_AI_TOKEN,required"`
 	OpenWeatherMapAPIKey      string  `env:"OPEN_WEATHER_MAP_API_KEY,required"`
 	OpenExchangeRatesAPPID    string  `env:"OPEN_EXCHANGE_RATES_APP_ID,required"`
+	GoogleAIAPIKey            string  `env:"GOOGLE_AI_API_KEY,required"`
 	TelegramAuthorizedUserIDs []int64 `env:"TELEGRAM_AUTHORIZED_USER_IDS" envSeparator:" "`
 	PgURL                     string  `env:"DATABASE_URL"`
 	PgHost                    string  `env:"DB_HOST" envDefault:"localhost:65433"`
@@ -123,6 +124,11 @@ func setupWorkers() (workers.Group, error) {
 	/*openAIClient, err := openai.NewClient(cfg.OpenAIToken)
 	if err != nil {
 		return nil, fmt.Errorf("creating open AI client: %v", err)
+	}*/
+
+	/*googleAIClient, err := googleai.NewClient(cfg.GoogleAIAPIKey)
+	if err != nil {
+		return nil, fmt.Errorf("creating google AI client: %v", err)
 	}*/
 
 	weatherRepo := repository.NewWeatherRepository(db)
